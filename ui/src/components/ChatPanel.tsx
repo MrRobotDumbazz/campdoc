@@ -5,11 +5,17 @@ export type ChatMessage =
   | { role: 'user'; text: string }
   | { role: 'bot'; investigationId: string }
 
+type BotMessage = Extract<ChatMessage, { role: 'bot' }>
+
 interface Props {
   client: ApiClient
   campaign: Dataset
   initialMessages: ChatMessage[]
-  onMessagesChange: (messages: ChatMessage[]) => void
+  investigations: Record<string, Investigation>
+  errors: Record<string, string>
+  onMessagesChange: (campaignId: string, messages: ChatMessage[]) => void
+  onInvestigationData: (id: string, investigation: Investigation) => void
+  onInvestigationError: (id: string, error: string) => void
 }
 
 const SUGGESTIONS = [
@@ -18,16 +24,51 @@ const SUGGESTIONS = [
   'Сравни с бенчмарком сектора',
 ]
 
-export default function ChatPanel({ client, campaign, initialMessages, onMessagesChange }: Props) {
+export default function ChatPanel({
+  client,
+  campaign,
+  initialMessages,
+  investigations,
+  errors,
+  onMessagesChange,
+  onInvestigationData,
+  onInvestigationError,
+}: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [asking, setAsking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const pendingIds = messages
+    .filter((m): m is BotMessage => m.role === 'bot')
+    .map((m) => m.investigationId)
+    .filter((id) => investigations[id]?.status === undefined || investigations[id].status === 'running')
+
   useEffect(() => {
-    onMessagesChange(messages)
-  }, [messages, onMessagesChange])
+    if (pendingIds.length === 0) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      pendingIds.forEach((id) => {
+        client
+          .investigation(id)
+          .then((inv) => {
+            if (!cancelled) onInvestigationData(id, inv)
+          })
+          .catch((e: unknown) => {
+            if (!cancelled) onInvestigationError(id, e instanceof Error ? e.message : String(e))
+          })
+      })
+    }, 600)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [pendingIds.join(','), client, onInvestigationData, onInvestigationError])
+
+  useEffect(() => {
+    onMessagesChange(campaign.campaign_id, messages)
+  }, [campaign.campaign_id, messages, onMessagesChange])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -69,7 +110,11 @@ export default function ChatPanel({ client, campaign, initialMessages, onMessage
               <div className="msg-bubble">{m.text}</div>
             </div>
           ) : (
-            <InvestigationMessage key={m.investigationId} client={client} investigationId={m.investigationId} />
+            <InvestigationBubble
+              key={m.investigationId}
+              investigation={investigations[m.investigationId] ?? null}
+              error={errors[m.investigationId]}
+            />
           ),
         )}
         <div ref={bottomRef} />
@@ -106,38 +151,11 @@ export default function ChatPanel({ client, campaign, initialMessages, onMessage
   )
 }
 
-function InvestigationMessage({ client, investigationId }: { client: ApiClient; investigationId: string }) {
-  const [investigation, setInvestigation] = useState<Investigation | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    let timer: ReturnType<typeof setTimeout> | null = null
-
-    async function poll() {
-      try {
-        const inv = await client.investigation(investigationId)
-        if (cancelled) return
-        setInvestigation(inv)
-        if (inv.status === 'running') {
-          timer = setTimeout(poll, 800)
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e))
-      }
-    }
-
-    poll()
-    return () => {
-      cancelled = true
-      if (timer) clearTimeout(timer)
-    }
-  }, [client, investigationId])
-
+function InvestigationBubble({ investigation, error }: { investigation: Investigation | null; error?: string }) {
   if (error) {
     return (
       <div className="msg bot">
-        <div className="msg-bubble error-box">Ошибка расследования: {error}</div>
+        <div className="msg-bubble error-box tight">Ошибка расследования: {error}</div>
       </div>
     )
   }
@@ -150,7 +168,6 @@ function InvestigationMessage({ client, investigationId }: { client: ApiClient; 
         <div className="msg-bubble running">
           <span className="spinner" />
           Агент расследует… {last ? `${last.step}: ${last.output_summary}` : 'старт'}
-          <span className="step-count">шаг {steps.length}/7</span>
         </div>
       </div>
     )
@@ -159,7 +176,7 @@ function InvestigationMessage({ client, investigationId }: { client: ApiClient; 
   if (investigation.status === 'error') {
     return (
       <div className="msg bot">
-        <div className="msg-bubble error-box">Расследование завершилось с ошибкой</div>
+        <div className="msg-bubble error-box tight">Расследование завершилось с ошибкой</div>
       </div>
     )
   }

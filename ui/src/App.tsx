@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createApiClient } from './api/client'
-import type { Dataset } from './api/types'
+import type { Dataset, Investigation } from './api/types'
 import DatasetPicker from './components/DatasetPicker'
 import ChatPanel from './components/ChatPanel'
 import type { ChatMessage } from './components/ChatPanel'
+import TracePanel from './components/TracePanel'
 
 export default function App() {
   const client = useMemo(() => createApiClient(), [])
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [histories, setHistories] = useState<Record<string, ChatMessage[]>>({})
+  const [investigations, setInvestigations] = useState<Record<string, Investigation>>({})
+  const [investigationErrors, setInvestigationErrors] = useState<Record<string, string>>({})
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -30,7 +33,30 @@ export default function App() {
     }
   }, [client])
 
+  const handleMessagesChange = useCallback((campaignId: string, msgs: ChatMessage[]) => {
+    setHistories((prev) => ({ ...prev, [campaignId]: msgs }))
+  }, [])
+
+  const handleInvestigationData = useCallback((id: string, inv: Investigation) => {
+    setInvestigations((prev) => ({ ...prev, [id]: inv }))
+  }, [])
+
+  const handleInvestigationError = useCallback((id: string, error: string) => {
+    setInvestigationErrors((prev) => ({ ...prev, [id]: error }))
+  }, [])
+
   const selected = datasets.find((d) => d.campaign_id === selectedId) ?? null
+
+  const activeInvestigationId = useMemo(() => {
+    if (!selected) return null
+    const msgs = histories[selected.campaign_id]
+    if (!msgs) return null
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m.role === 'bot') return m.investigationId
+    }
+    return null
+  }, [histories, selected])
 
   return (
     <div className="app">
@@ -52,14 +78,20 @@ export default function App() {
               client={client}
               campaign={selected}
               initialMessages={histories[selected.campaign_id] ?? []}
-              onMessagesChange={(msgs) =>
-                setHistories((h) => ({ ...h, [selected.campaign_id]: msgs }))
-              }
+              investigations={investigations}
+              errors={investigationErrors}
+              onMessagesChange={handleMessagesChange}
+              onInvestigationData={handleInvestigationData}
+              onInvestigationError={handleInvestigationError}
             />
           ) : (
             <div className="chat-empty">Выберите датасет слева</div>
           )}
         </main>
+        <TracePanel
+          investigation={activeInvestigationId ? investigations[activeInvestigationId] ?? null : null}
+          error={activeInvestigationId ? investigationErrors[activeInvestigationId] : undefined}
+        />
       </div>
     </div>
   )
