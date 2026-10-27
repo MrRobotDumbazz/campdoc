@@ -24,7 +24,8 @@ backend/
   tools/    loader (валидация схем + мок-датасеты), data_tools, sim_client (мок/HTTP)
   evals/    eval harness (D7)
   scripts/  check_tool_calling.py — Day-1 проверка формата tool-calling
-  tests/    контрактные тесты API, детерминизм симуляции, evidence-rule, схемы
+  tests/    контрактные тесты API, LLM-режим (stub-сервер: tool-calling/json-fallback/
+            отказ → эвристики), data-инструменты, evidence-rule, схемы, персистентность трейса
 ```
 
 ## Режимы

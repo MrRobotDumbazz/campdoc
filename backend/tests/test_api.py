@@ -1,6 +1,7 @@
 """Contract tests for the five /contracts/app.api.yaml endpoints (heuristic offline mode)."""
 from __future__ import annotations
 
+import json
 import time
 
 from fastapi.testclient import TestClient
@@ -117,3 +118,27 @@ def test_report_md(tmp_path):
 def test_unknown_investigation(tmp_path):
     client = make_client(tmp_path)
     assert client.get("/api/investigations/deadbeef").status_code == 404
+
+
+def test_state_persisted_to_disk(tmp_path):
+    client = make_client(tmp_path)
+    inv_id = client.post("/api/ask", json={"campaign_id": "camp_005_asap",
+                                           "question": "Budget gone too fast?"}).json()["investigation_id"]
+    wait_done(client, inv_id)
+    inv_dir = tmp_path / "state" / "investigations"
+    final = json.loads((inv_dir / f"{inv_id}.json").read_text(encoding="utf-8"))
+    assert final["status"] == "done"
+    assert final["findings"], "persisted snapshot must include findings"
+    assert final["fixes"], "persisted snapshot must include flattened fixes"
+    trace_lines = (inv_dir / f"{inv_id}.trace.jsonl").read_text(encoding="utf-8").strip().splitlines()
+    assert len(trace_lines) >= 5, "every tool call must be trace-logged (PRD 6.4)"
+    assert all(json.loads(l)["step"] for l in trace_lines)
+
+
+def test_report_pending_while_running(tmp_path):
+    client = make_client(tmp_path)
+    inv_id = client.post("/api/ask", json={"campaign_id": "camp_006_floors",
+                                           "question": "Why?"}).json()["investigation_id"]
+    resp = client.get(f"/api/investigations/{inv_id}/report.md")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/markdown")

@@ -38,11 +38,13 @@ class LLMResponse:
 
 
 class MuseSparkClient:
-    def __init__(self, base_url: str, api_key: str, model: str, timeout_s: float = 60.0):
+    def __init__(self, base_url: str, api_key: str, model: str, timeout_s: float = 60.0,
+                 transport: Any | None = None):
         if not base_url or not api_key:
             raise LLMUnavailableError("Muse Spark credentials are not configured (env MUSE_SPARK_BASE_URL / MUSE_SPARK_API_KEY).")
         self._http = httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout_s,
-                                  headers={"Authorization": f"Bearer {api_key}"})
+                                  headers={"Authorization": f"Bearer {api_key}"},
+                                  transport=transport)
         self.model = model
 
     def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,

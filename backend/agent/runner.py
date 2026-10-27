@@ -129,6 +129,7 @@ class InvestigationRunner:
                            "; ".join(f.cause[:60] for f in findings[:3]))
                 return findings, mode
             if isinstance(payload, dict) and payload.get("tool"):
+                mode = "json-prompting"  # model drives tools via content JSON, not tool_calls
                 messages.append({"role": "assistant", "content": text})
                 res = self._safe_call(str(payload["tool"]), payload.get("arguments") or {})
                 if res is not None:
@@ -148,17 +149,19 @@ class InvestigationRunner:
         self.trace("tool", name, _clip(args), _clip(res.summary))
         return res
 
-    def run(self, campaign_id: str, question: str) -> tuple[list[Finding], dict[str, Any]]:
+    def run(self, campaign_id: str, question: str,
+            client: MuseSparkClient | None = None) -> tuple[list[Finding], dict[str, Any]]:
         mode = "heuristic"
         findings: list[Finding] = []
         llm_note = ""
-        if self.settings.llm_available:
+        if client is None and self.settings.llm_available:
+            client = MuseSparkClient(self.settings.muse_base_url,  # type: ignore[arg-type]
+                                     self.settings.muse_api_key,  # type: ignore[arg-type]
+                                     self.settings.muse_model,
+                                     self.settings.request_timeout_s)
+        if client is not None:
             try:
-                client = MuseSparkClient(self.settings.muse_base_url,  # type: ignore[arg-type]
-                                         self.settings.muse_api_key,  # type: ignore[arg-type]
-                                         self.settings.muse_model,
-                                         self.settings.request_timeout_s)
-                self.trace("plan", None, question, f"LLM mode: model={self.settings.muse_model}")
+                self.trace("plan", None, question, f"LLM mode: model={getattr(client, 'model', '?')}")
                 findings, mode = self.run_llm(client, campaign_id, question)
             except (LLMUnavailableError, LLMParseError, RuntimeError, OSError) as e:
                 llm_note = f"LLM unavailable/failed ({type(e).__name__}: {e}); heuristic fallback used"
