@@ -26,8 +26,8 @@
 - [ ] D8: финальная полировка под сценарий видео (PRD §10)
 
 ## Track B — ML (S-1 acting — контингенси №1 активен 2026-10-27; при возврате P-2 → W-3 по E6; зоны /simulator /data)
-- [ ] D1: генераторы синтетики v0 от /contracts/data.schemas.md
-- [ ] D2–D3: полный генератор 6–8 кампаний + healthy control, seeded failure modes (PRD §8, режимы 1–3); data/manifest.json с сидами
+- [x] D1: генераторы синтетики v0 от /contracts/data.schemas.md (13f910a, S-1 acting)
+- [x] D2–D3: полный генератор 8 кампаний + healthy control, все режимы PRD §8 (1–7), data/manifest.json с сидами; 10 тестов зелёные (13f910a)
 - [ ] D3: симулятор v0 — реплей bid-сэмплов, first/second price toggle, детерминизм по seed, unit tests
 - [ ] D4: режимы 4–6; калибровка симулятора против ground truth
 - [ ] D5: соответствие /contracts/simulation.api.yaml v1 (интеграционные тесты контракта)
