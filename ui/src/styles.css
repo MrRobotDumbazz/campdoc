@@ -599,3 +599,115 @@ body {
 .error-box.tight {
   margin: 8px 12px;
 }
+
+.sim-slot {
+  margin-top: 8px;
+}
+
+.sim-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.sim-btn:hover {
+  background: rgba(88, 166, 255, 0.12);
+}
+
+.sim-btn.small {
+  padding: 2px 9px;
+  font-size: 11px;
+}
+
+.sim-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.sim-box.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+}
+
+.sim-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sim-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 1px 10px;
+  border: 1px solid;
+}
+
+.sim-badge.verified {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: rgba(63, 185, 80, 0.1);
+}
+
+.sim-badge.unverified {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: rgba(210, 153, 34, 0.1);
+}
+
+.sim-threshold {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.sim-head .sim-btn {
+  margin-left: auto;
+}
+
+.sim-table {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  gap: 3px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-th {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sim-metric-name {
+  color: var(--text-dim);
+}
+
+.sim-delta {
+  color: var(--accent);
+}
+
+.sim-violations {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--bad);
+  font-size: 11px;
+}
+
+.sim-notes {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+}

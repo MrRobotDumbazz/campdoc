@@ -5,6 +5,7 @@ import DatasetPicker from './components/DatasetPicker'
 import ChatPanel from './components/ChatPanel'
 import type { ChatMessage } from './components/ChatPanel'
 import TracePanel from './components/TracePanel'
+import type { SimState } from './components/SimView'
 
 export default function App() {
   const client = useMemo(() => createApiClient(), [])
@@ -13,6 +14,7 @@ export default function App() {
   const [histories, setHistories] = useState<Record<string, ChatMessage[]>>({})
   const [investigations, setInvestigations] = useState<Record<string, Investigation>>({})
   const [investigationErrors, setInvestigationErrors] = useState<Record<string, string>>({})
+  const [simulations, setSimulations] = useState<Record<string, SimState>>({})
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -43,6 +45,10 @@ export default function App() {
 
   const handleInvestigationError = useCallback((id: string, error: string) => {
     setInvestigationErrors((prev) => ({ ...prev, [id]: error }))
+  }, [])
+
+  const handleSimulationChange = useCallback((key: string, state: SimState) => {
+    setSimulations((prev) => ({ ...prev, [key]: state }))
   }, [])
 
   const selected = datasets.find((d) => d.campaign_id === selectedId) ?? null
@@ -80,9 +86,11 @@ export default function App() {
               initialMessages={histories[selected.campaign_id] ?? []}
               investigations={investigations}
               errors={investigationErrors}
+              simulations={simulations}
               onMessagesChange={handleMessagesChange}
               onInvestigationData={handleInvestigationData}
               onInvestigationError={handleInvestigationError}
+              onSimulationChange={handleSimulationChange}
             />
           ) : (
             <div className="chat-empty">Выберите датасет слева</div>

@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ApiClient, Dataset, Investigation } from '../api/types'
+import SimView from './SimView'
+import type { SimState } from './SimView'
 
 export type ChatMessage =
   | { role: 'user'; text: string }
@@ -13,9 +15,11 @@ interface Props {
   initialMessages: ChatMessage[]
   investigations: Record<string, Investigation>
   errors: Record<string, string>
+  simulations: Record<string, SimState>
   onMessagesChange: (campaignId: string, messages: ChatMessage[]) => void
   onInvestigationData: (id: string, investigation: Investigation) => void
   onInvestigationError: (id: string, error: string) => void
+  onSimulationChange: (key: string, state: SimState) => void
 }
 
 const SUGGESTIONS = [
@@ -30,9 +34,11 @@ export default function ChatPanel({
   initialMessages,
   investigations,
   errors,
+  simulations,
   onMessagesChange,
   onInvestigationData,
   onInvestigationError,
+  onSimulationChange,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
@@ -74,6 +80,25 @@ export default function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const runSim = useCallback(
+    async (investigationId: string, fixIdx: number) => {
+      const key = `${investigationId}:${fixIdx}`
+      const seed = Math.floor(Math.random() * 1_000_000)
+      onSimulationChange(key, { status: 'loading', seed })
+      try {
+        const result = await client.simulate(investigationId, fixIdx, seed)
+        onSimulationChange(key, { status: 'done', seed, result })
+      } catch (e) {
+        onSimulationChange(key, {
+          status: 'error',
+          seed,
+          error: e instanceof Error ? e.message : String(e),
+        })
+      }
+    },
+    [client, onSimulationChange],
+  )
+
   async function send(question: string) {
     const q = question.trim()
     if (!q || asking) return
@@ -112,8 +137,11 @@ export default function ChatPanel({
           ) : (
             <InvestigationBubble
               key={m.investigationId}
+              investigationId={m.investigationId}
               investigation={investigations[m.investigationId] ?? null}
               error={errors[m.investigationId]}
+              simulations={simulations}
+              onRunSim={runSim}
             />
           ),
         )}
@@ -151,7 +179,19 @@ export default function ChatPanel({
   )
 }
 
-function InvestigationBubble({ investigation, error }: { investigation: Investigation | null; error?: string }) {
+function InvestigationBubble({
+  investigationId,
+  investigation,
+  error,
+  simulations,
+  onRunSim,
+}: {
+  investigationId: string
+  investigation: Investigation | null
+  error?: string
+  simulations: Record<string, SimState>
+  onRunSim: (investigationId: string, fixIdx: number) => void
+}) {
   if (error) {
     return (
       <div className="msg bot">
@@ -223,6 +263,20 @@ function InvestigationBubble({ investigation, error }: { investigation: Investig
                 {f.proposed_changes.map((c) => (
                   <code key={c}>{c}</code>
                 ))}
+              </div>
+            )}
+            {f.proposed_changes.length > 0 && (
+              <div className="sim-slot">
+                {simulations[`${investigationId}:${idx}`] ? (
+                  <SimView
+                    state={simulations[`${investigationId}:${idx}`]}
+                    onRerun={() => onRunSim(investigationId, idx)}
+                  />
+                ) : (
+                  <button className="sim-btn" onClick={() => onRunSim(investigationId, idx)}>
+                    ▶ Симулировать фикс
+                  </button>
+                )}
               </div>
             )}
           </div>
