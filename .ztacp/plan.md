@@ -25,7 +25,7 @@
 - [ ] D5–D6: скачивание отчёта .md; состояния loading/error; полировка демо-флоу
 - [ ] D8: финальная полировка под сценарий видео (PRD §10)
 
-## Track B — ML (W-3, супервизор P-2, зоны /simulator /data)
+## Track B — ML (S-1 acting — контингенси №1 активен 2026-10-27; при возврате P-2 → W-3 по E6; зоны /simulator /data)
 - [ ] D1: генераторы синтетики v0 от /contracts/data.schemas.md
 - [ ] D2–D3: полный генератор 6–8 кампаний + healthy control, seeded failure modes (PRD §8, режимы 1–3); data/manifest.json с сидами
 - [ ] D3: симулятор v0 — реплей bid-сэмплов, first/second price toggle, детерминизм по seed, unit tests
