@@ -155,9 +155,10 @@ class HttpSimulationClient:
 
     name = "http"
 
-    def __init__(self, base_url: str, timeout_s: float = 30.0):
+    def __init__(self, base_url: str, timeout_s: float = 30.0, transport: Any | None = None):
         import httpx  # local import: only needed when the real seam is enabled
-        self._client = httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout_s)
+        self._client = httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout_s,
+                                    transport=transport)
         self.base_url = base_url
 
     def run_simulation(self, campaign_id: str, seed: int, changes: dict[str, Any],

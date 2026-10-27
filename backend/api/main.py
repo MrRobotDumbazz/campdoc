@@ -103,6 +103,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                      target_metric=req.target_metric)
         except ToolError as e:
             return _err(422, "simulation failed", str(e))  # type: ignore[return-value]
+        store.record_simulation(investigation_id, idx,
+                                {"seed": req.seed, "target_metric": req.target_metric,
+                                 "description": fx["description"]}, out)
         return SimulateResponse(**{k: out[k] for k in
                                    ("before", "after", "delta", "verified", "threshold_pct",
                                     "violated_constraints", "notes")})

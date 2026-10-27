@@ -142,3 +142,19 @@ def test_report_pending_while_running(tmp_path):
     resp = client.get(f"/api/investigations/{inv_id}/report.md")
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/markdown")
+
+
+def test_report_includes_simulation_results(tmp_path):
+    client = make_client(tmp_path)
+    inv_id = client.post("/api/ask", json={"campaign_id": "camp_001_bid_low",
+                                           "question": "Why underdelivering?"}).json()["investigation_id"]
+    wait_done(client, inv_id)
+    sim = client.post(f"/api/investigations/{inv_id}/fixes/0/simulate", json={"seed": 7})
+    assert sim.status_code == 200
+    report = client.get(f"/api/investigations/{inv_id}/report.md").text
+    assert "verified" in report
+    assert "| metric | before | after | delta |" in report
+    assert "Plain English" in report
+    # snapshot on disk contains the recorded simulation too
+    snap = json.loads((tmp_path / "state" / "investigations" / f"{inv_id}.json").read_text())
+    assert "simulations" in snap["meta"] and "0" in snap["meta"]["simulations"]

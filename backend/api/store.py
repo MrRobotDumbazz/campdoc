@@ -83,6 +83,17 @@ class InvestigationStore:
             snapshot = self._snapshot(inv)
         self._persist(investigation_id, snapshot)
 
+    def record_simulation(self, investigation_id: str, fix_index: int,
+                          request: dict[str, Any], result: dict[str, Any]) -> None:
+        with self._lock:
+            inv = self._items.get(investigation_id)
+            if inv is None:
+                return
+            sims = inv.meta.setdefault("simulations", {})
+            sims[str(fix_index)] = {"request": request, "result": result}
+            snapshot = self._snapshot(inv)
+        self._persist(investigation_id, snapshot)
+
     def _snapshot(self, inv: Investigation) -> dict[str, Any]:
         return {
             "id": inv.id, "campaign_id": inv.campaign_id, "question": inv.question,
