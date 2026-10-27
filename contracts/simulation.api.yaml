@@ -2,7 +2,7 @@ contract: simulation
 version: 1-draft
 owner: S-1
 implementor: zone-B /simulator
-caller: zone-A /agent (tool: run_simulation)
+caller: W-1 /backend (tool: run_simulation)
 note: Контракт-шов (B1). Обе зоны работают от этой схемы и моков (B2) с Day 1. Изменения — только S-1, двухключево (I4/I22). Breaking-change → version+1.
 
 function:

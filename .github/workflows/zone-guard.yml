@@ -4,7 +4,7 @@ on:
     branches: [main]
 
 # Надзор как код (E12/I30). Активируется после публикации репо.
-# Зоны: A-бэкенд (agent|tools|evals|docs|README|pyproject|requirements),
+# Зоны: A-бэкенд (backend|docs|README|pyproject|requirements),
 #        F-фронтенд (ui), B-ML (simulator|data). Остальное — конституционное.
 # Правила: (1) один PR = одна продуктовая зона (C5/I3);
 #          (2) конституционные пути — только с меткой dual-key (I22);
@@ -28,7 +28,7 @@ jobs:
             case "$f" in
               .ztacp/*.log)
                 if git diff origin/${{ github.base_ref }}...HEAD -- "$f" | grep -q '^-' ; then APPEND_OK=0; fi ;;
-              agent/*|tools/*|evals/*|docs/*|README.md|pyproject.toml|requirements*.txt) A=1 ;;
+              backend/*|docs/*|README.md|pyproject.toml|requirements*.txt) A=1 ;;
               ui/*) F=1 ;;
               simulator/*|data/*) B=1 ;;
               *) C=1 ;;

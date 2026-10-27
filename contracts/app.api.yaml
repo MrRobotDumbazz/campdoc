@@ -1,7 +1,7 @@
 contract: app-api
 version: 1-draft
 owner: S-1
-implementor: W-1 (бэкенд, FastAPI, /agent)
+implementor: W-1 (бэкенд, FastAPI, /backend)
 caller: W-2 (фронтенд, /ui — mock-first, B2)
 changes: только S-1, двухключево (I22/I4); breaking → version+1
 

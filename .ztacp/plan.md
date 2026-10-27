@@ -9,7 +9,7 @@
 - [ ] CI zone-guard активируется на GitHub; приёмка: PR в чужую зону отклоняется механически (чеклист 9.8)
 - [ ] (опц.) L2: CODEOWNERS + машинные идентичности
 
-## Track A — Бэкенд (W-1, зоны /agent /tools /evals /docs)
+## Track A — Бэкенд (W-1, зоны /backend /docs)
 - [ ] D1: каркас FastAPI по /contracts/app.api.yaml + мок-режим; README v0; проверка tool-calling Muse Spark (fallback: structured JSON prompting + парсер) — до конца D1
 - [ ] D2: query_delivery, query_bid_samples, get_campaign_settings, compare_to_benchmark (валидация схем /contracts/data.schemas.md)
 - [ ] D2–D3: агент-луп: findings JSON {cause, evidence[], confidence, proposed_changes[]}; правило «нет evidence — нет диагноза» в коде; trace log JSON

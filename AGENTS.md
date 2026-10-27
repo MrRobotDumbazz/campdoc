@@ -11,7 +11,7 @@
 | P-1 | Человек 1 | Принципал, тимлид, второй ключ; супервизор W-1/W-2 | мастер-ключ всей карты (D2/I6) |
 | P-2 | Человек 2 | Воркер-человек, супервизор W-3 | — |
 | S-1 | opencode (GLM), эта сессия | Координатор (аренда 6.1). Продуктовой зоны НЕТ — экономия контекста координатора | AGENTS.md, /contracts, .ztacp/, .github/, .gitignore |
-| W-1 | opencode (GLM), сессия P-1 | Воркер — бэкенд | /agent /tools /evals /docs README.md pyproject.toml requirements*.txt |
+| W-1 | opencode (GLM), сессия P-1 | Воркер — бэкенд | /backend /docs README.md pyproject.toml requirements*.txt |
 | W-2 | opencode (GLM), сессия P-1 | Воркер — фронтенд | /ui |
 | W-3 | Codex (OpenAI), агент P-2 | Воркер — ML | /simulator /data |
 
@@ -32,7 +32,7 @@
 
 ## 4. Коммит-дисциплина (C5)
 - Стадируется только своя зона; `git add -A` / `git add .` запрещены; коммит атомарен одной зоне.
-- Формат сообщений: `<зона>: <что>` — префиксы: `agent:` `tools:` `evals:` `docs:` `ui:` `sim:` `data:` `contracts:` `gov:`.
+- Формат сообщений: `<зона>: <что>` — префиксы: `backend:` `docs:` `ui:` `sim:` `data:` `contracts:` `gov:`.
 - Пуш — только человек (I48/I52): воркеры не держат креды origin, не просят их, не пушат.
 
 ## 5. Тариф П0–П5 (E4/I13; канон 6.3.2)
