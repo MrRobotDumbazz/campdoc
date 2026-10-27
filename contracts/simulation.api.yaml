@@ -1,0 +1,45 @@
+contract: simulation
+version: 1-draft
+owner: S-1
+implementor: zone-B /simulator
+caller: zone-A /agent (tool: run_simulation)
+note: Контракт-шов (B1). Обе зоны работают от этой схемы и моков (B2) с Day 1. Изменения — только S-1, двухключево (I4/I22). Breaking-change → version+1.
+
+function:
+  name: run_simulation
+  input:
+    campaign_id: string            # датасет из /data
+    seed: integer                   # детерминизм обязателен
+    changes:                        # предлагаемый фикс; null = не меняется
+      bid: number | null            # абсолютная ставка
+      bid_delta_pct: number | null  # либо дельта в %
+      geo_widen: [string] | null
+      audience_widen: [string] | null
+      frequency_cap: integer | null # напр. 5/день
+      dayparts: [string] | null     # напр. ["00-08","18-23"]
+      pacing: [even, asap] | null
+      daily_budget_cap: number | null
+      block_sellers: [string] | null
+    constraints:                    # нарушать нельзя
+      budget_cap_total: number | null
+      max_ecpm: number | null
+    target_metric: [impressions, spend, win_rate, ecpm]   # default impressions
+  output:
+    before: {metrics}
+    after: {metrics}
+    delta: {metrics}
+    verified: boolean               # true если Δ(target) >= threshold_pct и constraints не нарушены
+    threshold_pct: number           # default 5.0
+    violated_constraints: [string]
+    notes: [string]                 # допущения модели; всегда включает limitation-note
+  metrics:
+    impressions: integer
+    spend: number
+    win_rate: number                # 0..1
+    ecpm: number
+
+execution:
+  determinism: одинаковые input+seed -> одинаковый output (unit test обязателен)
+  auction_model: first_price | second_price   # toggle из campaign settings
+  competitor_bids: оцениваются по залогированным winning prices датасета
+  limitation_note: "Симуляция на выборке bid-запросов; прогноз, не гарантия"

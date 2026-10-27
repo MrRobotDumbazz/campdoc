@@ -1,0 +1,51 @@
+contract: app-api
+version: 1-draft
+owner: S-1
+implementor: W-1 (бэкенд, FastAPI, /agent)
+caller: W-2 (фронтенд, /ui — mock-first, B2)
+changes: только S-1, двухключево (I22/I4); breaking → version+1
+
+base: /api
+format: JSON; даты ISO-8601 UTC
+auth: нет (демо-локально); ключи модели — на стороне W-1 в env (I52)
+
+endpoints:
+
+  GET /api/datasets:
+    response:
+      datasets: [{campaign_id: string, name: string, healthy: bool}]
+
+  POST /api/ask:
+    request: {campaign_id: string, question: string}
+    response: {investigation_id: string}        # HTTP 202
+
+  GET /api/investigations/{id}:
+    response:
+      status: [running, done, error]
+      question: string
+      trace: [{ts: string, step: string, tool: string|null,
+               input_summary: string, output_summary: string}]   # live-панель трейса
+      findings:                                                  # при status=done
+        - cause: string
+          evidence: [{tool: string, ref: string, summary: string}]
+          confidence: number          # 0..1
+          proposed_changes: [string]
+      verifier: {claims_total: int, claims_grounded: int, removed: [string]}
+
+  POST /api/investigations/{id}/fixes/{idx}/simulate:
+    request: {seed: integer}
+    response:   # форма = contracts/simulation.api.yaml output
+      before: {metrics}
+      after: {metrics}
+      delta: {metrics}
+      verified: boolean
+      threshold_pct: number
+      violated_constraints: [string]
+      notes: [string]
+
+  GET /api/investigations/{id}/report.md:
+    response: text/markdown            # клиент-готовый отчёт: findings, verified-фиксы, plain-English
+
+metrics: {impressions: integer, spend: number, win_rate: number, ecpm: number}
+
+errors: {error: string, detail: string|null}    # HTTP 4xx/5xx

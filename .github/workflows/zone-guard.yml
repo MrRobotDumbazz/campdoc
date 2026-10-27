@@ -1,0 +1,49 @@
+name: zone-guard
+on:
+  pull_request:
+    branches: [main]
+
+# Надзор как код (E12/I30). Активируется после публикации репо.
+# Зоны: A-бэкенд (agent|tools|evals|docs|README|pyproject|requirements),
+#        F-фронтенд (ui), B-ML (simulator|data). Остальное — конституционное.
+# Правила: (1) один PR = одна продуктовая зона (C5/I3);
+#          (2) конституционные пути — только с меткой dual-key (I22);
+#          (3) .ztacp/*.log — только дополнения (append-only, I21).
+
+jobs:
+  zone-purity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Collect changed files
+        run: git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed.txt
+      - name: Zone purity check
+        run: |
+          set -e
+          A=0; F=0; B=0; C=0; APPEND_OK=1
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              .ztacp/*.log)
+                if git diff origin/${{ github.base_ref }}...HEAD -- "$f" | grep -q '^-' ; then APPEND_OK=0; fi ;;
+              agent/*|tools/*|evals/*|docs/*|README.md|pyproject.toml|requirements*.txt) A=1 ;;
+              ui/*) F=1 ;;
+              simulator/*|data/*) B=1 ;;
+              *) C=1 ;;
+            esac
+          done < /tmp/changed.txt
+          # канон — конституционный даже внутри docs/
+          if grep -qE 'docs/ztacp-pattern' /tmp/changed.txt; then C=1; fi
+          ZONES=$((A+F+B))
+          if [ "$ZONES" -gt 1 ]; then
+            echo "::error::PR смешивает несколько зон (C5) — раздели на отдельные PR"; exit 1
+          fi
+          if [ $C -eq 1 ] && ! echo '${{ github.event.pull_request.labels.*.name }}' | grep -q 'dual-key'; then
+            echo "::error::Конституционные пути требуют метки dual-key (I22)"; exit 1
+          fi
+          if [ $APPEND_OK -eq 0 ]; then
+            echo "::error::.ztacp/*.log — только дополнения (I21 append-only)"; exit 1
+          fi
+          echo "zone-guard: OK"
