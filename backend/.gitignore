@@ -1,0 +1,9 @@
+# runtime state
+.state/
+runs/
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.egg-info/
