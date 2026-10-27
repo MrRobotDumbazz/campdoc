@@ -10,17 +10,17 @@
 - [ ] (опц.) L2: CODEOWNERS + машинные идентичности
 
 ## Track A — Бэкенд (W-1, зоны /backend /docs)
-- [ ] D1: каркас FastAPI по /contracts/app.api.yaml + мок-режим; README v0; проверка tool-calling Muse Spark (fallback: structured JSON prompting + парсер) — до конца D1
-- [ ] D2: query_delivery, query_bid_samples, get_campaign_settings, compare_to_benchmark (валидация схем /contracts/data.schemas.md)
-- [ ] D2–D3: агент-луп: findings JSON {cause, evidence[], confidence, proposed_changes[]}; правило «нет evidence — нет диагноза» в коде; trace log JSON
+- [x] D1: каркас FastAPI по /contracts/app.api.yaml + мок-режим; README v0; проверка tool-calling Muse Spark (fallback: structured JSON prompting + парсер) — до конца D1 (e74b0d9)
+- [x] D2: query_delivery, query_bid_samples, get_campaign_settings, compare_to_benchmark (валидация схем /contracts/data.schemas.md) (e74b0d9, тесты ac98604)
+- [x] D2–D3: агент-луп: findings JSON {cause, evidence[], confidence, proposed_changes[]}; правило «нет evidence — нет диагноза» в коде; trace log JSON (ac98604: 35 тестов зелёные, S-1 прогон 2026-10-27)
 - [ ] D4–D5: интеграция run_simulation: мок → реальный симулятор W-3 по контракту
 - [ ] D5: verifier pass (groundedness; «verified» при Δ≥5% без нарушения constraints); unsupported claims удаляются/флагуются
 - [ ] D7: eval harness — метрики в README таблицей (таргеты: top-1 80% / top-3 90% / groundedness 95% / fix success 75% / FP=0 / медиана <60с)
 - [ ] D8: README-полировка, «built during hackathon»-секция
 
 ## Track F — Фронтенд (W-2, зона /ui)
-- [ ] D1: каркас UI от моков /contracts/app.api.yaml (B2): выбор датасета, чат-панель
-- [ ] D2–D3: live trace-панель (polling /investigations/{id})
+- [x] D1: каркас UI от моков /contracts/app.api.yaml (B2): выбор датасета, чат-панель (f01db99; сборка проверена S-1 2026-10-27)
+- [x] D2–D3: live trace-панель (polling /investigations/{id}) (45781ae)
 - [ ] D4: before/after панель симуляций (verified/unverified бейджи)
 - [ ] D5–D6: скачивание отчёта .md; состояния loading/error; полировка демо-флоу
 - [ ] D8: финальная полировка под сценарий видео (PRD §10)
