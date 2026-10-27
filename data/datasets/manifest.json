@@ -1,0 +1,46 @@
+{
+  "generator_version": "0",
+  "seed": 42,
+  "campaigns": {
+    "control_healthy": {
+      "name": "Healthy control",
+      "mode": 0,
+      "seed_key": "42:control_healthy"
+    },
+    "fm1_bid_low": {
+      "name": "FM1 bid too low vs market",
+      "mode": 1,
+      "seed_key": "42:fm1_bid_low"
+    },
+    "fm2_narrow": {
+      "name": "FM2 targeting too narrow",
+      "mode": 2,
+      "seed_key": "42:fm2_narrow"
+    },
+    "fm3_freqcap": {
+      "name": "FM3 frequency cap too strict",
+      "mode": 3,
+      "seed_key": "42:fm3_freqcap"
+    },
+    "fm4_daypart": {
+      "name": "FM4 daypart/schedule mismatch",
+      "mode": 4,
+      "seed_key": "42:fm4_daypart"
+    },
+    "fm5_asap": {
+      "name": "FM5 overspend aggressive pacing",
+      "mode": 5,
+      "seed_key": "42:fm5_asap"
+    },
+    "fm6_floor": {
+      "name": "FM6 floor price conflicts",
+      "mode": 6,
+      "seed_key": "42:fm6_floor"
+    },
+    "fm7_supply": {
+      "name": "FM7 low-quality supply-path spend",
+      "mode": 7,
+      "seed_key": "42:fm7_supply"
+    }
+  }
+}

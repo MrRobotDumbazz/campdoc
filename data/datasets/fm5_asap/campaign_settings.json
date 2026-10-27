@@ -1,0 +1,30 @@
+{
+  "campaign_id": "fm5_asap",
+  "budget_total": 20000.0,
+  "flight_start": "2026-10-12",
+  "flight_end": "2026-10-25",
+  "pacing": "asap",
+  "daily_budget_cap": null,
+  "bid": 2.6,
+  "bid_strategy": "fixed",
+  "targeting": {
+    "geo": [
+      "US-NY",
+      "US-CA",
+      "US-TX",
+      "US-FL",
+      "US-IL"
+    ],
+    "audience": [
+      "broad"
+    ],
+    "inventory": [
+      "open_exchange"
+    ]
+  },
+  "frequency_cap": {
+    "per_day": null
+  },
+  "dayparts": null,
+  "auction_model": "first_price"
+}

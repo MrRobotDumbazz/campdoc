@@ -1,0 +1,30 @@
+{
+  "campaign_id": "fm6_floor",
+  "budget_total": 20000.0,
+  "flight_start": "2026-10-12",
+  "flight_end": "2026-10-25",
+  "pacing": "even",
+  "daily_budget_cap": 1428.5714285714287,
+  "bid": 2.6,
+  "bid_strategy": "fixed",
+  "targeting": {
+    "geo": [
+      "US-NY",
+      "US-CA",
+      "US-TX",
+      "US-FL",
+      "US-IL"
+    ],
+    "audience": [
+      "broad"
+    ],
+    "inventory": [
+      "open_exchange"
+    ]
+  },
+  "frequency_cap": {
+    "per_day": null
+  },
+  "dayparts": null,
+  "auction_model": "second_price"
+}
