@@ -56,6 +56,34 @@ body {
   letter-spacing: 0.08em;
 }
 
+.mode-badge.live {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.sidebar-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+
+.report-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-row .verifier {
+  flex: 1;
+}
+
+.report-row .sim-btn {
+  white-space: nowrap;
+}
+
 .app-body {
   flex: 1;
   display: flex;

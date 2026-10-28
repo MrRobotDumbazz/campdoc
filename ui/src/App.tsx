@@ -15,10 +15,12 @@ export default function App() {
   const [investigations, setInvestigations] = useState<Record<string, Investigation>>({})
   const [investigationErrors, setInvestigationErrors] = useState<Record<string, string>>({})
   const [simulations, setSimulations] = useState<Record<string, SimState>>({})
+  const [datasetsLoading, setDatasetsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    setDatasetsLoading(true)
     client
       .datasets()
       .then((ds) => {
@@ -29,6 +31,9 @@ export default function App() {
       })
       .catch((e: unknown) => {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => {
+        if (!cancelled) setDatasetsLoading(false)
       })
     return () => {
       cancelled = true
@@ -52,6 +57,7 @@ export default function App() {
   }, [])
 
   const selected = datasets.find((d) => d.campaign_id === selectedId) ?? null
+  const liveMode = import.meta.env.VITE_LIVE_API === '1'
 
   const activeInvestigationId = useMemo(() => {
     if (!selected) return null
@@ -70,11 +76,14 @@ export default function App() {
         <div className="logo">
           <span className="logo-mark">⚕</span> Campaign Doctor
         </div>
-        <div className="mode-badge">mock mode</div>
+        <div className={`mode-badge ${liveMode ? 'live' : ''}`}>{liveMode ? 'live api' : 'mock mode'}</div>
       </header>
       <div className="app-body">
         <aside className="sidebar">
-          <DatasetPicker datasets={datasets} selectedId={selectedId} onSelect={setSelectedId} />
+          {datasetsLoading && <div className="sidebar-loading"><span className="spinner" /> Загрузка датасетов…</div>}
+          {!datasetsLoading && (
+            <DatasetPicker datasets={datasets} selectedId={selectedId} onSelect={setSelectedId} />
+          )}
           {loadError && <div className="error-box">Не удалось загрузить датасеты: {loadError}</div>}
         </aside>
         <main className="chat-area">

@@ -99,6 +99,22 @@ export default function ChatPanel({
     [client, onSimulationChange],
   )
 
+  const downloadReport = useCallback(
+    async (investigationId: string) => {
+      const md = await client.report(investigationId)
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `report-${investigationId}.md`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    },
+    [client],
+  )
+
   async function send(question: string) {
     const q = question.trim()
     if (!q || asking) return
@@ -142,6 +158,7 @@ export default function ChatPanel({
               error={errors[m.investigationId]}
               simulations={simulations}
               onRunSim={runSim}
+              onDownloadReport={downloadReport}
             />
           ),
         )}
@@ -185,13 +202,30 @@ function InvestigationBubble({
   error,
   simulations,
   onRunSim,
+  onDownloadReport,
 }: {
   investigationId: string
   investigation: Investigation | null
   error?: string
   simulations: Record<string, SimState>
   onRunSim: (investigationId: string, fixIdx: number) => void
+  onDownloadReport: (investigationId: string) => Promise<void>
 }) {
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+
+  async function handleDownload() {
+    setReportBusy(true)
+    setReportError(null)
+    try {
+      await onDownloadReport(investigationId)
+    } catch (e) {
+      setReportError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setReportBusy(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="msg bot">
@@ -281,10 +315,16 @@ function InvestigationBubble({
             )}
           </div>
         ))}
-        <div className={`verifier ${v.claims_grounded < v.claims_total ? 'warn' : 'ok'}`}>
-          Verifier: {v.claims_grounded}/{v.claims_total} claims grounded
-          {v.removed.length > 0 && `, removed: ${v.removed.length}`}
+        <div className="report-row">
+          <div className={`verifier ${v.claims_grounded < v.claims_total ? 'warn' : 'ok'}`}>
+            Verifier: {v.claims_grounded}/{v.claims_total} claims grounded
+            {v.removed.length > 0 && `, removed: ${v.removed.length}`}
+          </div>
+          <button className="sim-btn small" onClick={handleDownload} disabled={reportBusy}>
+            ⬇ {reportBusy ? 'Готовим…' : 'Отчёт .md'}
+          </button>
         </div>
+        {reportError && <div className="error-box tight">{reportError}</div>}
       </div>
     </div>
   )
