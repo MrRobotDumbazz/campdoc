@@ -55,6 +55,11 @@ def _runner(tmp_path, client=None):
     return runner, registry, traces
 
 
+def _ok_verifier_reply():
+    return {"choices": [{"message": {"content": json.dumps(
+        {"supported": True, "reason": "numbers line up"})}}]}
+
+
 def test_tool_calling_loop_produces_grounded_findings(tmp_path):
     replies = [
         _msg(tool_calls=[_tool_call("1", "query_bid_samples",
@@ -65,6 +70,7 @@ def test_tool_calling_loop_produces_grounded_findings(tmp_path):
             "evidence": [{"tool": "query_bid_samples", "ref": REAL_REF, "summary": "outbids 70%"},
                          {"tool": "get_campaign_settings", "ref": SETTINGS_REF, "summary": "bid 1.85"}],
             "confidence": 0.9, "proposed_changes": ["Raise bid by 20%"]}]})),
+        _ok_verifier_reply(),  # verifier pass supports the claim
     ]
     client = _client(lambda req: httpx.Response(200, json=replies.pop(0)))
     runner, registry, traces = _runner(tmp_path)
@@ -103,6 +109,7 @@ def test_json_prompting_fallback_when_no_tool_calls(tmp_path):
             "cause": "stub cause via json mode",
             "evidence": [{"tool": "get_campaign_settings", "ref": SETTINGS_REF, "summary": "s"}],
             "confidence": 0.8, "proposed_changes": []}]})),
+        _ok_verifier_reply(),
     ]
     client = _client(lambda req: httpx.Response(200, json=replies.pop(0)))
     runner, registry, _ = _runner(tmp_path)

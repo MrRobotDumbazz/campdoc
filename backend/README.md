@@ -40,7 +40,11 @@ backend/
 
 - Каждый finding имеет evidence с ref на реально выполненный tool-вызов
   (`backend/agent/findings.py:enforce_evidence`) — «нет evidence — нет диагноза» в коде.
-- Симуляция детерминирована: одинаковые input+seed → одинаковый output.
+- Verifier двухслойный (`backend/agent/verifier.py`): rule-based ref-check всегда;
+  при доступном Muse Spark — семантическая проверка claim↔tool-выводы (отказ API не
+  удаляет обоснованные claims). Groundedness = claims_grounded/claims_total.
+- Симуляция детерминирована: одинаковые input+seed → одинаковый output;
+  «verified» = Δ(target) ≥ 5% без нарушения constraints.
 - Healthy control не даёт ложных диагнозов (FP=0).
 - Ошибки схем данных — понятным текстом с именем колонки/строки.
 

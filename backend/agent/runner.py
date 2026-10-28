@@ -21,7 +21,7 @@ from ..config import Settings
 from ..tools import TOOL_SPECS, ToolRegistry
 from ..tools.base import ToolError
 from . import heuristics
-from .findings import Finding, enforce_evidence
+from .findings import Finding, VerifierReport, enforce_evidence
 from .llm import LLMParseError, LLMUnavailableError, MuseSparkClient, extract_json
 
 TraceSink = Callable[[str, str | None, str, str], None]
@@ -173,9 +173,25 @@ class InvestigationRunner:
             findings = self.run_heuristic(campaign_id, question)
 
         kept, report = enforce_evidence(findings, self.registry.executed)
-        self.trace("verify", None,
-                   f"{report.claims_total} claims, {len(report.removed)} removed",
-                   "; ".join(report.removed) or "all claims grounded")
+        if client is not None:
+            from .verifier import verify_with_llm
+            try:
+                kept2, llm_report = verify_with_llm(kept, self.registry.executed,
+                                                    client, self.trace)
+                report = VerifierReport(claims_total=report.claims_total,
+                                        claims_grounded=llm_report.claims_grounded,
+                                        removed=report.removed + llm_report.removed)
+                kept = kept2
+                self.trace("verify", None,
+                           f"{report.claims_total} claims, {len(report.removed)} removed "
+                           f"(rule-based + LLM pass)", "verifier pass complete")
+            except OSError as e:
+                self.trace("verify-llm", None, type(e).__name__,
+                           f"LLM verifier unavailable, rule-based verdict stands ({e})")
+        else:
+            self.trace("verify", None,
+                       f"{report.claims_total} claims, {len(report.removed)} removed",
+                       "; ".join(report.removed) or "all claims grounded (rule-based)")
         meta = {"agent_mode": mode, "llm_note": llm_note,
                 "tool_calls": list(self.registry.executed.keys())}
         return kept, {"verifier": report, "meta": meta}

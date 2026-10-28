@@ -15,6 +15,11 @@ delivery, spend, win rate, eCPM) до того, как рекомендоват�
   (детерминированный, по `/contracts/simulation.api.yaml`), агент-луп (Muse Spark
   tool-calling + fallback: structured JSON → детерминированные эвристики), verifier
   «нет evidence — нет диагноза» на уровне кода, 8 мок-кампаний (режимы 1–8 из PRD §8).
+- **D2–D3:** машинная верификация агент-лупа (stub-сервер: tool-calling/JSON-fallback/отказ),
+  юнит-тесты инструментов, отчёт с результатами симуляций (before/after, verified-бейджи,
+  plain-english), контрактные тесты HTTP-клиента симулятора.
+- **D5:** двухслойный verifier — rule-based ref-check + семантический LLM-pass
+  (Muse Spark; при отказе API вердикт rule-based сохраняется).
 - Демо-датасеты — встроенные моки до появления данных зоны ML (`/data`); статус виден в
   `GET /api/health` (`data_source`).
 
