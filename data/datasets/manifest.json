@@ -1,5 +1,5 @@
 {
-  "generator_version": "0",
+  "generator_version": "0.1",
   "seed": 42,
   "campaigns": {
     "control_healthy": {

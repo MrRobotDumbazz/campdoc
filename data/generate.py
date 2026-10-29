@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Campaign Doctor — генератор синтетических данных v0 (зона ML, S-1 acting).
+"""Campaign Doctor — генератор синтетических данных v0.1 (зона ML, S-1 acting).
 
 Схемы: /contracts/data.schemas.md. Failure modes: PRD §8 (0=healthy control, 1..7).
 Детерминизм: одинаковый seed -> идентичные файлы (покрыто тестом).
 Запуск: python3 data/generate.py [--out data/datasets] [--seed 42]
+
+v0.1: в bid_samples логируются ВСЕ запросы (win/loss/drop/no_bid) — материал
+для симулятора: смена dayparts/pacing/флуров replay-ится по тем же строкам.
 """
 from __future__ import annotations
 
@@ -13,7 +16,7 @@ import hashlib
 import json
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -86,17 +89,6 @@ def _lognormal(rng: random.Random, median: float, sigma: float) -> float:
     return math.exp(rng.gauss(math.log(median), sigma))
 
 
-def _sample_row(rng, keep, ts, site, seller, geo, device, floor, our_bid,
-                winning_price, outcome, samples):
-    if rng.random() < keep:
-        samples.append({
-            "ts": ts, "site_app": site, "seller": seller, "geo": geo,
-            "device": device, "floor_price": round(floor, 4),
-            "our_bid": round(our_bid, 4),
-            "winning_price": round(winning_price, 4), "outcome": outcome,
-        })
-
-
 def simulate(spec: Spec, seed: int) -> dict:
     rng = random.Random(_seed_int(f"{seed}:{spec.campaign_id}"))
     hours_on = _hours(spec)
@@ -117,9 +109,30 @@ def simulate(spec: Spec, seed: int) -> dict:
     active_hours: set[int] = set()
     last_day = 0
 
+    def draw_market(geo_ok, seller):
+        """Цены запроса: флур и топ-конкурент (для любого исхода — нужен реплею)."""
+        if spec.high_floor_share and rng.random() < spec.high_floor_share:
+            floor = _lognormal(rng, HIGH_FLOOR_MEDIAN, FLOOR_SIGMA)
+        else:
+            floor = _lognormal(rng, FLOOR_MEDIAN, FLOOR_SIGMA)
+        if spec.niche_comp and seller == spec.niche_comp[0]:
+            c1 = _lognormal(rng, spec.niche_comp[1], spec.niche_comp[2])
+        else:
+            c1 = _lognormal(rng, spec.comp_median, COMP_SIGMA)
+        return floor, c1
+
+    def sample(ts, site, seller, geo, device, floor, our_bid, market, outcome):
+        if rng.random() < SAMPLE_KEEP:
+            samples.append({
+                "ts": ts, "site_app": site, "seller": seller, "geo": geo,
+                "device": device, "floor_price": round(floor, 4),
+                "our_bid": round(our_bid, 4),
+                "winning_price": round(market, 4), "outcome": outcome,
+            })
+
     for d in range(FLIGHT_DAYS):
         day_iso = (start + timedelta(days=d)).isoformat()
-        for h in sorted(hours_on):
+        for h in range(24):
             n_req = max(1, int(rng.gauss(BASE_RPH * spec.base_mult,
                                          BASE_RPH * spec.base_mult * 0.15)))
             hour_spend = 0.0
@@ -134,43 +147,40 @@ def simulate(spec: Spec, seed: int) -> dict:
                     seller = rng.choice([s for s in SELLERS
                                          if not spec.niche_comp or s != spec.niche_comp[0]])
                 site = rng.choice(SITES)
+                our_bid = max(0.05, spec.bid * (1 + rng.gauss(0, 0.03)))
+                floor, c1 = draw_market(geo, seller)
 
+                if h not in hours_on:
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "dropped_schedule")
+                    continue
                 if geo not in spec.geo:
-                    _sample_row(rng, SAMPLE_KEEP, ts, site, seller, geo, device,
-                                FLOOR_MEDIAN, spec.bid, 0.0,
-                                "dropped_targeting", samples)
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "dropped_targeting")
                     continue
                 if spec.freq_drop and rng.random() < spec.freq_drop:
-                    _sample_row(rng, SAMPLE_KEEP, ts, site, seller, geo, device,
-                                FLOOR_MEDIAN, spec.bid, 0.0,
-                                "dropped_freq_cap", samples)
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "dropped_freq_cap")
                     continue
                 if hourly_cap is not None and hour_spend >= hourly_cap:
-                    continue  # пейсинг: не бидим — в логи не попадает
-                if budget_left <= 0:
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "no_bid_budget")
                     continue
-
-                if spec.high_floor_share and rng.random() < spec.high_floor_share:
-                    floor = _lognormal(rng, HIGH_FLOOR_MEDIAN, FLOOR_SIGMA)
-                else:
-                    floor = _lognormal(rng, FLOOR_MEDIAN, FLOOR_SIGMA)
-                our_bid = max(0.05, spec.bid * (1 + rng.gauss(0, 0.03)))
-                if spec.niche_comp and seller == spec.niche_comp[0]:
-                    c1 = _lognormal(rng, spec.niche_comp[1], spec.niche_comp[2])
-                else:
-                    c1 = _lognormal(rng, spec.comp_median, COMP_SIGMA)
+                if budget_left <= 0:
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "no_bid_budget")
+                    continue
 
                 bids_total += 1
                 h_bids += 1
                 active_hours.add(h)
                 if our_bid < floor:
-                    _sample_row(rng, SAMPLE_KEEP, ts, site, seller, geo, device,
-                                floor, our_bid, max(floor, c1),
-                                "loss_below_floor", samples)
+                    sample(ts, site, seller, geo, device, floor, our_bid,
+                           max(floor, c1), "loss_below_floor")
                     continue
                 if our_bid <= c1:
-                    _sample_row(rng, SAMPLE_KEEP, ts, site, seller, geo, device,
-                                floor, our_bid, c1, "loss_outbid", samples)
+                    sample(ts, site, seller, geo, device, floor, our_bid, c1,
+                           "loss_outbid")
                     continue
 
                 pay = our_bid if spec.auction_model == "first_price" else max(floor, c1)
@@ -182,14 +192,14 @@ def simulate(spec: Spec, seed: int) -> dict:
                 h_wins += 1
                 seller_spend[seller] = seller_spend.get(seller, 0.0) + pay
                 last_day = max(last_day, d + 1)
-                _sample_row(rng, SAMPLE_KEEP, ts, site, seller, geo, device,
-                            floor, our_bid, pay, "win", samples)
+                sample(ts, site, seller, geo, device, floor, our_bid, pay, "win")
 
-            hourly.append({
-                "date": day_iso, "hour": h,
-                "impressions": h_wins, "spend": round(hour_spend, 2),
-                "bids": h_bids, "wins": h_wins,
-            })
+            if h in hours_on:
+                hourly.append({
+                    "date": day_iso, "hour": h,
+                    "impressions": h_wins, "spend": round(hour_spend, 2),
+                    "bids": h_bids, "wins": h_wins,
+                })
 
     n_samples = len(samples) or 1
     drop_share = sum(1 for s in samples if s["outcome"] == "dropped_freq_cap") / n_samples
@@ -268,14 +278,15 @@ def main() -> None:
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    manifest = {"generator_version": "0", "seed": args.seed, "campaigns": {}}
+    manifest = {"generator_version": "0.1", "seed": args.seed, "campaigns": {}}
     print(f"{'campaign':16} {'mode':4} {'win_rate':>9} {'delivery':>9} "
           f"{'freq%':>6} {'floor%':>7} {'last_day':>8} {'topSeller%':>10}")
     for spec in SPECS:
         result = simulate(spec, args.seed)
         write_campaign(out_dir, result)
         manifest["campaigns"][spec.campaign_id] = {
-            "name": spec.name, "mode": spec.mode, "seed_key": f"{args.seed}:{spec.campaign_id}",
+            "name": spec.name, "mode": spec.mode,
+            "seed_key": f"{args.seed}:{spec.campaign_id}",
         }
         st = result["stats"]
         print(f"{st['campaign_id']:16} {st['mode']:<4} {st['win_rate']:>9} "
