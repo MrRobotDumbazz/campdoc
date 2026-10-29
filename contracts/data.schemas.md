@@ -46,7 +46,10 @@
 | floor_price | float | 2.10 |
 | our_bid | float | 1.85 |
 | winning_price | float | 2.30 |
-| outcome | enum | win, loss_below_floor, loss_outbid, dropped_freq_cap, dropped_targeting |
+| outcome | enum | win, loss_below_floor, loss_outbid, dropped_freq_cap, dropped_targeting, dropped_schedule, no_bid_budget |
+
+Для строк dropped_* и no_bid_budget: `winning_price` — оценка цены победителя (топ-конкурент), платёж не выполнялся; `our_bid` — ставка, которую кампания сделала бы/пыталась сделать. Эти строки — материал для симулятора (реплей смены dayparts/pacing/флуров).
+Изменение v0.1 (S-1, 2026-10-27): добавлены исходы `dropped_schedule`, `no_bid_budget`; ранее drop-строки несли константный флур и market=0.
 
 ## 5. Бенчмарк: healthy control
 
