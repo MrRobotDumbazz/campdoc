@@ -28,9 +28,9 @@
 ## Track B — ML (S-1 acting — контингенси №1 активен 2026-10-27; при возврате P-2 → W-3 по E6; зоны /simulator /data)
 - [x] D1: генераторы синтетики v0 от /contracts/data.schemas.md (13f910a, S-1 acting)
 - [x] D2–D3: полный генератор 8 кампаний + healthy control, все режимы PRD §8 (1–7), data/manifest.json с сидами; 10 тестов зелёные (13f910a)
-- [ ] D3: симулятор v0 — реплей bid-сэмплов, first/second price toggle, детерминизм по seed, unit tests
-- [ ] D4: режимы 4–6; калибровка симулятора против ground truth
-- [ ] D5: соответствие /contracts/simulation.api.yaml v1 (интеграционные тесты контракта)
+- [x] D3: симулятор v0 — реплей bid-сэмплов, first/second price toggle, детерминизм по seed, unit tests (900265a: 16 тестов; калибровка против факта ±5%)
+- [x] D4: режимы 4–6 в данных (13f910a); калибровка симулятора против ground truth (test_calibration_*: healthy/asap/daypart в пределах 15%, факт ~±5%)
+- [x] D5: соответствие /contracts/simulation.api.yaml v1 (schema-тест output; контракт обновлён v0.1 — 25cd09b); интеграция с агентом — Track A D4–D5
 
 ## Track T — Human-only (P-1, P-2)
 - [ ] D1: заявки кредитов: $150 Meta (каждый individually), Baseten $100, Modal $100; кредитка + spend-limit
