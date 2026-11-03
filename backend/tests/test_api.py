@@ -16,6 +16,48 @@ def make_client(tmp_path) -> TestClient:
     return TestClient(app)
 
 
+def test_health_reports_backend_and_model(tmp_path):
+    client = make_client(tmp_path)
+    out = client.get("/api/health").json()
+    assert out["ok"] is True
+    assert out["agent_mode"] == "heuristic"
+    assert out["llm_backend"] == "auto"  # no Muse Spark env creds in offline mode
+    assert "llm_model" in out
+    assert out["data_source"] == "mock"
+
+
+def test_health_backend_open_weights_prefix(tmp_path):
+    settings = Settings(data_dir=tmp_path / "no-data", state_dir=tmp_path / "state",
+                        muse_api_key="k", muse_base_url="http://stub",
+                        muse_model="meta-models/muse-spark-open-1026")
+    out = TestClient(create_app(settings)).get("/api/health").json()
+    assert out["agent_mode"] == "llm"
+    assert out["llm_backend"] == "open_weights"
+
+
+def test_health_backend_meta_api(tmp_path):
+    settings = Settings(data_dir=tmp_path / "no-data", state_dir=tmp_path / "state",
+                        muse_api_key="k", muse_base_url="http://stub",
+                        muse_model="muse-spark")
+    out = TestClient(create_app(settings)).get("/api/health").json()
+    assert out["llm_backend"] == "meta_api"
+
+
+def test_health_real_datasets_when_present(tmp_path):
+    """Default config must pick up the shared data/datasets dir (seam /data)."""
+    from backend.config import REPO_ROOT
+    datasets = REPO_ROOT / "data" / "datasets"
+    if not datasets.is_dir():
+        import pytest
+        pytest.skip("shared data/datasets not present in this checkout")
+    settings = Settings(state_dir=tmp_path / "state")
+    assert settings.data_dir == datasets
+    out = TestClient(create_app(settings)).get("/api/health").json()
+    assert out["data_source"] == "data-dir"
+    ids = {d["campaign_id"] for d in TestClient(create_app(settings)).get("/api/datasets").json()["datasets"]}
+    assert {"control_healthy", "fm1_bid_low"} <= ids
+
+
 def wait_done(client: TestClient, inv_id: str, timeout_s: float = 10.0) -> dict:
     deadline = time.time() + timeout_s
     while time.time() < deadline:

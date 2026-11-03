@@ -18,6 +18,25 @@ from .sim_client import make_simulation_client
 HandledCall = Callable[[str, dict[str, Any]], ToolResult]
 
 
+def _sim_summary(out: dict[str, Any], target_metric: str) -> str:
+    """Tolerant to both mock (has delta_pct) and HTTP simulator output (contract
+    fields only): derive pct from before/after when delta_pct is absent."""
+    tail = f"verified={out['verified']}, violated={out['violated_constraints']}"
+    dp = (out.get("delta_pct") or {}).get(target_metric)
+    if dp is None:
+        import math
+        before = out.get("before", {}).get(target_metric)
+        after = out.get("after", {}).get(target_metric)
+        if isinstance(before, (int, float)) and isinstance(after, (int, float)) and before:
+            dp = round((after - before) / before * 100, 2)
+            if not math.isfinite(dp):
+                dp = None
+    if dp is not None:
+        return f"delta_pct({target_metric})={dp}%, {tail}"
+    delta = (out.get("delta") or {}).get(target_metric)
+    return f"delta({target_metric})={delta}, {tail}"
+
+
 class ToolRegistry:
     def __init__(self, repo: DatasetRepository, settings: Settings):
         self.repo = repo
@@ -53,8 +72,7 @@ class ToolRegistry:
             cid = args.get("campaign_id")
             return ToolResult(
                 tool="run_simulation", ref=f"run_simulation:{cid}:{args.get('seed', 0)}",
-                summary=(f"{cid}: delta_pct(impressions)={out['delta_pct']['impressions']}%, "
-                         f"verified={out['verified']}, violated={out['violated_constraints']}"),
+                summary=f"{cid}: {_sim_summary(out, args.get('target_metric', 'impressions'))}",
                 data=out)
         raise ToolError(f"Unknown tool '{name}'. Registered: query_delivery, query_bid_samples, "
                         f"get_campaign_settings, compare_to_benchmark, run_simulation.")

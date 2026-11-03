@@ -76,3 +76,54 @@ def test_factory_selects_http_client_when_configured(tmp_path):
     assert isinstance(client, HttpSimulationClient)
     assert client.name == "http"
     client._client.close()
+
+
+class _ContractOnlySim:
+    """Stands in for the HTTP simulator: contract output, no delta_pct field."""
+
+    name = "stub"
+
+    def run_simulation(self, campaign_id, seed, changes, constraints,
+                       target_metric="impressions"):
+        return {
+            "before": {"impressions": 1000, "spend": 50.0, "win_rate": 0.2, "ecpm": 2.0},
+            "after": {"impressions": 1200, "spend": 60.0, "win_rate": 0.3, "ecpm": 2.0},
+            "delta": {"impressions": 200, "spend": 10.0, "win_rate": 0.1, "ecpm": 0.0},
+            "verified": True, "threshold_pct": 5.0,
+            "violated_constraints": [], "notes": [],
+        }
+
+
+def test_run_simulation_tool_tolerates_missing_delta_pct(tmp_path):
+    from backend.tools import ToolRegistry
+
+    settings = Settings(data_dir=tmp_path / "no", state_dir=tmp_path)
+    repo = DatasetRepository(settings.data_dir)
+    registry = ToolRegistry(repo, settings)
+    registry.sim = _ContractOnlySim()
+    res = registry.call("run_simulation", {"campaign_id": "camp_001_bid_low", "seed": 42})
+    assert "delta_pct(impressions)=20.0%" in res.summary
+    assert "verified=True" in res.summary
+    assert res.data["verified"] is True
+
+
+def test_run_simulation_tool_safe_text_when_pct_not_computible(tmp_path):
+    from backend.tools import ToolRegistry
+
+    class _ZeroBefore(_ContractOnlySim):
+        def run_simulation(self, campaign_id, seed, changes, constraints,
+                           target_metric="impressions"):
+            out = super().run_simulation(campaign_id, seed, changes, constraints,
+                                         target_metric)
+            out["before"]["impressions"] = 0
+            out["after"]["impressions"] = 0
+            out["delta"]["impressions"] = 0
+            return out
+
+    settings = Settings(data_dir=tmp_path / "no", state_dir=tmp_path)
+    repo = DatasetRepository(settings.data_dir)
+    registry = ToolRegistry(repo, settings)
+    registry.sim = _ZeroBefore()
+    res = registry.call("run_simulation", {"campaign_id": "camp_001_bid_low", "seed": 42})
+    assert "delta(impressions)=0" in res.summary
+    assert "delta_pct" not in res.summary

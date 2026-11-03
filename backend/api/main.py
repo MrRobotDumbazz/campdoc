@@ -47,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, Any]:
         return {"ok": True, "agent_mode": "llm" if settings.llm_available else "heuristic",
+                "llm_backend": settings.llm_backend, "llm_model": settings.muse_model,
                 "data_source": "mock" if repo.using_mock_data() else "data-dir",
                 "simulator": sim.name}
 
