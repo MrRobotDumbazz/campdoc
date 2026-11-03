@@ -126,3 +126,17 @@ def test_healthy_no_fake_improvement_needed():
     out = run("control_healthy", changes={"bid": 2.61})
     # микроскопенная правка не должна давать verified
     assert out["verified"] is False
+
+
+def test_fm7_block_with_decrease_direction():
+    # v1-draft.1: блокировка мусорного продавца — spend должен УПАСТЬ (direction=decrease)
+    out = run("fm7_supply", changes={"block_sellers": ["ssp_7"]},
+              target_metric="spend", target_direction="decrease")
+    assert out["after"]["spend"] < out["before"]["spend"]
+    assert out["verified"] is True
+
+
+def test_pacing_block_in_output():
+    out = run("fm5_asap", changes={"pacing": "even", "daily_budget_cap": 20000 / 14})
+    assert "pacing" in out
+    assert out["pacing"]["after"]["active_days"] > out["pacing"]["before"]["active_days"]

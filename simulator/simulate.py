@@ -207,6 +207,7 @@ def run_simulation(inp: dict, data_root=None) -> dict:
     changes = inp.get("changes") or {}
     constraints = inp.get("constraints") or {}
     target = inp.get("target_metric", "impressions")
+    direction = inp.get("target_direction", "increase")
     threshold = float(inp.get("threshold_pct", 5.0))
 
     before = _replay(settings, samples, scale, {}, None, seed)
@@ -224,8 +225,15 @@ def run_simulation(inp: dict, data_root=None) -> dict:
         violated.append(f"budget_cap_total: after={after['spend']} > cap={budget_cap}")
 
     base = before[target] or 1
-    improves = (after[target] - before[target]) / abs(base) >= threshold / 100
+    gain = ((after[target] - before[target]) if direction != "decrease"
+            else (before[target] - after[target]))
+    improves = gain / abs(base) >= threshold / 100
     verified = bool(improves and not violated)
+
+    def pacing_view(m):
+        d = m["_diag"]
+        return {"active_days": d["active_days"], "active_hours": d["active_hours"],
+                "budget_utilization": d["budget_utilization"]}
 
     notes = [LIMITATION_NOTE, *NOT_MODELLED,
              f"freq-recovery model: drop(C)={FREQ_DROP_BASE}*C_old/C",
@@ -246,5 +254,6 @@ def run_simulation(inp: dict, data_root=None) -> dict:
         "verified": verified,
         "threshold_pct": threshold,
         "violated_constraints": violated,
+        "pacing": {"before": pacing_view(before), "after": pacing_view(after)},
         "notes": notes,
     }

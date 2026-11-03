@@ -1,5 +1,5 @@
 contract: simulation
-version: 1-draft
+version: 1-draft.1
 owner: S-1
 implementor: zone-B /simulator
 caller: W-1 /backend (tool: run_simulation)
@@ -24,13 +24,18 @@ function:
       budget_cap_total: number | null
       max_ecpm: number | null
     target_metric: [impressions, spend, win_rate, ecpm]   # default impressions
+    target_direction: [increase, decrease]                 # default increase; v1-draft.1:
+                                                            # семантика улучшения (напр. fm7: spend+decrease)
   output:
     before: {metrics}
     after: {metrics}
     delta: {metrics}
-    verified: boolean               # true если Δ(target) >= threshold_pct и constraints не нарушены
+    verified: boolean               # true если Δ(target) >= threshold_pct в направлении target_direction и constraints не нарушены
     threshold_pct: number           # default 5.0
     violated_constraints: [string]
+    pacing:                         # v1-draft.1: диагностика пейсинга (фиксы fm5 верифицируются по ней)
+      before: {active_days: int, active_hours: int, budget_utilization: number}
+      after: {active_days: int, active_hours: int, budget_utilization: number}
     notes: [string]                 # допущения модели; всегда включает limitation-note
   metrics:
     impressions: integer
