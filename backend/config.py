@@ -9,6 +9,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = Path(__file__).resolve().parent
 
+# Hosted Muse Spark via Meta Model API (verified against dev.meta.ai/docs
+# 2026-11-03: OpenAI-compatible; Chat Completions is a supported protocol;
+# default model ids muse-spark-1.3 / muse-spark-1.1; key env MODEL_API_KEY).
+META_DEFAULT_BASE_URL = "https://api.meta.ai/v1"
+META_DEFAULT_MODEL = "muse-spark-1.3"
+
 # Muse Spark Open preset on Baseten (PRD 6.7 open-weights). No new env names
 # for the user: the key falls back to BASETEN_API_KEY; explicit MUSE_SPARK_*
 # env always wins over the preset defaults.
@@ -26,10 +32,13 @@ HF_DEFAULT_MODEL = "meta-models/Muse-Spark-Open-816B-A42B"
 
 
 def resolve_muse_key(env: Mapping[str, str]) -> tuple[str | None, str | None]:
-    """(key, source): MUSE_SPARK_API_KEY/MUSESPARK_API_KEY, then BASETEN_API_KEY, then HF_TOKEN."""
+    """(key, source): MUSE_SPARK_API_KEY/MUSESPARK_API_KEY, then MODEL_API_KEY
+    (documented Meta Model API name), then BASETEN_API_KEY, then HF_TOKEN."""
     key = env.get("MUSE_SPARK_API_KEY") or env.get("MUSESPARK_API_KEY")
     if key:
         return key, "muse"
+    if env.get("MODEL_API_KEY"):
+        return env["MODEL_API_KEY"], "meta"
     if env.get("BASETEN_API_KEY"):
         return env["BASETEN_API_KEY"], "baseten"
     hf = env.get("HF_TOKEN") or env.get("HUGGINGFACE_API_KEY")
@@ -43,6 +52,8 @@ def resolve_muse_base_url(env: Mapping[str, str]) -> str | None:
     if url:
         return url
     source = resolve_muse_key(env)[1]
+    if source in ("muse", "meta"):
+        return META_DEFAULT_BASE_URL
     if source == "baseten":
         return BASETEN_DEFAULT_BASE_URL
     if source == "hf":
@@ -55,6 +66,8 @@ def resolve_muse_model(env: Mapping[str, str]) -> str:
     if model:
         return model
     source = resolve_muse_key(env)[1]
+    if source in ("muse", "meta"):
+        return META_DEFAULT_MODEL
     if source == "baseten":
         return BASETEN_DEFAULT_MODEL
     if source == "hf":

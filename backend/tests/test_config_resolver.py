@@ -44,7 +44,7 @@ def test_muse_env_wins_over_baseten(monkeypatch):
     assert s.muse_api_key == "mk-1"
     assert s.muse_key_source == "muse"
     assert s.muse_base_url == "https://muse.example"
-    assert s.muse_model == "muse-spark"
+    assert s.muse_model == "muse-spark-1.3"  # документированный дефолт Meta Model API
     assert s.llm_backend == "meta_api"
 
 
@@ -68,13 +68,24 @@ def test_no_credentials_means_auto_backend(monkeypatch):
     assert s.llm_backend == "auto"
 
 
-def test_muse_key_without_base_url_is_not_available(monkeypatch):
+def test_muse_key_defaults_to_documented_meta_api(monkeypatch):
     monkeypatch.setenv("MUSE_SPARK_API_KEY", "mk-1")
     s = make_settings()
-    # no BASETEN_API_KEY -> no preset base URL default for muse-source keys
-    assert s.muse_base_url is None
-    assert not s.llm_available
-    assert s.llm_backend == "auto"
+    # официальный Meta Model API: OpenAI-совместимый, base/model из dev.meta.ai/docs
+    from backend.config import META_DEFAULT_BASE_URL, META_DEFAULT_MODEL
+    assert s.muse_base_url == META_DEFAULT_BASE_URL == "https://api.meta.ai/v1"
+    assert s.muse_model == META_DEFAULT_MODEL == "muse-spark-1.3"
+    assert s.llm_available
+    assert s.llm_backend == "meta_api"
+
+
+def test_model_api_key_env_arms_meta_preset(monkeypatch):
+    monkeypatch.setenv("MODEL_API_KEY", "meta-key")
+    s = make_settings()
+    assert s.muse_key_source == "meta"
+    assert s.muse_base_url == "https://api.meta.ai/v1"
+    assert s.muse_model == "muse-spark-1.3"
+    assert s.llm_backend == "meta_api"
 
 
 def test_meta_models_prefix_selects_open_weights(monkeypatch):

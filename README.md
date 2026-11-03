@@ -60,12 +60,13 @@ python3 simulator/server.py --port 8100          # from the repo root
 export SIMULATOR_BASE_URL=http://127.0.0.1:8100  # otherwise the mock client is used
 ```
 
-- Muse Spark via Meta Model API:
+- Muse Spark via Meta Model API — **a single variable** (defaults verified against
+  dev.meta.ai/docs: OpenAI-compatible, Chat Completions supported):
 
 ```bash
-export MUSE_SPARK_BASE_URL=...   # from the Meta Model API docs
-export MUSE_SPARK_API_KEY=...    # env only, never commit
-export MUSE_SPARK_MODEL=...      # optional
+export MODEL_API_KEY=...         # base URL and model resolve automatically:
+                                 # https://api.meta.ai/v1, muse-spark-1.3
+# explicit overrides: MUSE_SPARK_BASE_URL / MUSE_SPARK_MODEL / MUSE_SPARK_API_KEY
 backend/.venv/bin/python backend/scripts/check_tool_calling.py   # tool-calling check
 ```
 
