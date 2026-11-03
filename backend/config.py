@@ -17,8 +17,8 @@ class Settings:
     muse_model: str = field(default_factory=lambda: os.environ.get("MUSE_SPARK_MODEL", "muse-spark"))
     # Simulator seam (contracts/simulation.api.yaml); unset -> deterministic mock client.
     simulator_base_url: str | None = field(default_factory=lambda: os.environ.get("SIMULATOR_BASE_URL"))
-    # Data dir (zone B /data); if absent/empty -> built-in deterministic demo datasets.
-    data_dir: Path = field(default_factory=lambda: Path(os.environ.get("CAMPDOC_DATA_DIR", str(REPO_ROOT / "data"))))
+    # Data dir (zone B /data/datasets); if absent/empty -> built-in deterministic demo datasets.
+    data_dir: Path = field(default_factory=lambda: Path(os.environ.get("CAMPDOC_DATA_DIR", str(REPO_ROOT / "data" / "datasets"))))
     state_dir: Path = field(default_factory=lambda: Path(os.environ.get("CAMPDOC_STATE_DIR", str(BACKEND_ROOT / ".state"))))
     agent_max_steps: int = field(default_factory=lambda: int(os.environ.get("CAMPDOC_AGENT_MAX_STEPS", "12")))
     simulation_threshold_pct: float = field(default_factory=lambda: float(os.environ.get("CAMPDOC_SIM_THRESHOLD_PCT", "5.0")))
@@ -27,6 +27,17 @@ class Settings:
     @property
     def llm_available(self) -> bool:
         return bool(self.muse_api_key and self.muse_base_url)
+
+    @property
+    def llm_backend(self) -> str:
+        """Which LLM backend the agent would use:
+        - "auto": no Muse Spark env credentials -> heuristic engine (offline demo);
+        - "meta_api": MUSE_SPARK_API_KEY + MUSE_SPARK_BASE_URL set (hosted API);
+        - "open_weights": same creds but model prefixed "meta-models/" (PRD 6.7,
+          e.g. meta-models/muse-spark-open-1026 via Baseten)."""
+        if not self.llm_available:
+            return "auto"
+        return "open_weights" if self.muse_model.startswith("meta-models/") else "meta_api"
 
     def ensure_state_dir(self) -> Path:
         self.state_dir.mkdir(parents=True, exist_ok=True)

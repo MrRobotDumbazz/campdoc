@@ -23,7 +23,8 @@ SCHEMA_BID_SAMPLES = [
     "ts", "site_app", "seller", "geo", "device",
     "floor_price", "our_bid", "winning_price", "outcome",
 ]
-OUTCOMES = {"win", "loss_below_floor", "loss_outbid", "dropped_freq_cap", "dropped_targeting"}
+OUTCOMES = {"win", "loss_below_floor", "loss_outbid", "dropped_freq_cap", "dropped_targeting",
+            "no_bid_budget", "dropped_schedule"}
 DEVICES = {"mobile", "desktop", "ctv"}
 
 FLIGHT_DAYS = 14
@@ -328,9 +329,16 @@ def _build_mock_datasets() -> dict[str, CampaignDataset]:
     return out
 
 
+def _manifest_mode(entry: dict[str, Any]) -> Any:
+    """Ground-truth key is 'mode' (data.schemas v0.1); older layouts used 'failure_mode'."""
+    if "mode" in entry:
+        return entry["mode"]
+    return entry.get("failure_mode")
+
+
 def _manifest_healthy(manifest: dict, cid: str) -> bool:
     entry = manifest.get("campaigns", {}).get(cid, {})
-    mode = entry.get("failure_mode")
+    mode = _manifest_mode(entry)
     return mode in (0, 8, None, "none", "healthy") and cid.startswith("control")
 
 
@@ -347,7 +355,7 @@ def _load_data_dir(data_dir: Path) -> dict[str, CampaignDataset]:
         cid = camp_dir.name
         settings_path = camp_dir / "campaign_settings.json"
         if not settings_path.exists():
-            raise DataValidationError(f"{camp_dir.name}/: campaign_settings.json not found")
+            continue  # not a campaign dir (e.g. __pycache__); skip silently
         try:
             settings = json.loads(settings_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
@@ -366,7 +374,7 @@ def _load_data_dir(data_dir: Path) -> dict[str, CampaignDataset]:
             daily=_load_csv(daily_p, SCHEMA_DELIVERY_DAILY),
             hourly=_load_csv(hourly_p, SCHEMA_DELIVERY_HOURLY),
             bid_samples=_load_bid_samples(bids_p),
-            ground_truth_mode=manifest.get("campaigns", {}).get(cid, {}).get("failure_mode"),
+            ground_truth_mode=_manifest_mode(manifest.get("campaigns", {}).get(cid, {})),
         )
     return datasets
 
