@@ -1,6 +1,6 @@
 # Campaign Doctor — eval results (PRD §9)
 
-Run configuration: seed 42, datasets: data-dir (/home/mrrobotdumbazz/campdoc/data/datasets), verifier: rule-based, **sim=real (HTTP @ http://127.0.0.1:8100, контракт simulation.api.yaml v1-draft.1), agent=heuristic (LLM pending open-weights)**.
+Run configuration: seed 42, datasets: data-dir (/home/mrrobotdumbazz/campdoc/data/datasets), verifier: rule-based, **sim=real (HTTP @ http://127.0.0.1:8100, contract simulation.api.yaml v1-draft.1), agent=heuristic (LLM pending open-weights)**.
 
 | metric | result | target |
 |---|---|---|
