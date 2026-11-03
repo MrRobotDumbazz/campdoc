@@ -55,7 +55,16 @@ export MUSE_SPARK_MODEL=...      # опционально
 backend/.venv/bin/python backend/scripts/check_tool_calling.py   # Day-1 проверка tool-calling
 ```
 
-- Реальный симулятор (Day 4–5): `export SIMULATOR_BASE_URL=...` — иначе мок-клиент.
+- Реальный симулятор (Day 4–5): `python3 simulator/server.py --port 8100` из корня репо,
+  затем `export SIMULATOR_BASE_URL=http://127.0.0.1:8100` — иначе мок-клиент.
+- Режим Muse Spark Open (открытые веса, Baseten) — **одна переменная**:
+
+```bash
+export BASETEN_API_KEY=...    # модель и URL подставятся сами:
+                              # meta-models/muse-spark-open-1026 @ inference.baseten.co/v1
+                              # (актуальный URL сверь с docs.baseten.co)
+```
+
 - Датасеты зоны ML: положить кампании в `/data` (схемы — `contracts/data.schemas.md`);
   пока каталог пуст, используются встроенные моки.
 
@@ -68,16 +77,20 @@ backend/.venv/bin/python backend/scripts/check_tool_calling.py   # Day-1 про�
 - Демо и evals на момент сабмита работают на документированном fallback: детерминированный heuristic-режим (офлайн, воспроизводимо); LLM-слой (tool-calling, structured JSON prompting, LLM-verifier) реализован и покрыт тестами против stub-серверов.
 - Агент модель-агностичен: Muse Spark (Meta Model API) и открытые веса Muse Spark Open (`meta-models/muse-spark-open-1026`) подключаются env-переменными без правок кода. Текущий режим — `GET /api/health`, поле `agent_mode`.
 
-## Eval-таргеты (PRD §9; harness — Day 7, таблица появится здесь)
+## Eval-результаты (PRD §9; seed 42; жюри-перезапуск: `backend/.venv/bin/python backend/evals/run_evals.py`)
 
-| Метрика | Таргет | Текущий результат |
+Режим прогона: sim=real (HTTP, контракт `simulation.api.yaml` v1-draft.1), agent=heuristic
+(детерминированный офлайн-движок; LLM-слой подключается env — см. заметку о доступе к моделям).
+По-кампанная таблица: `backend/evals/results.md`. Тесты: 99 passed.
+
+| Метрика | Таргет | Результат |
 |---|---|---|
-| Diagnosis top-1 | ≥ 80% | — |
-| Diagnosis top-3 | ≥ 90% | — |
-| Groundedness после verifier | ≥ 95% | — |
-| Fix success rate | ≥ 75% | — |
-| FP на healthy control | 0 | — |
-| Медиана диагностики | < 60 сек | — |
+| Diagnosis top-1 | ≥ 80% | **100%** |
+| Diagnosis top-3 | ≥ 90% | **100%** |
+| Groundedness после verifier | ≥ 95% | **100%** |
+| Fix success rate (verified в симуляторе) | ≥ 75% | **100%** (7/7 режимов) |
+| FP на healthy control | 0 | **0** |
+| Медиана диагностики | < 60 сек | **12 мс** (эвристики, офлайн) |
 
 ## Репозиторий
 
