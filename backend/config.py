@@ -16,11 +16,13 @@ BASETEN_DEFAULT_BASE_URL = "https://inference.baseten.co/v1"  # проверь �
 BASETEN_DEFAULT_MODEL = "meta-models/muse-spark-open-1026"
 
 # Muse Spark Open via Hugging Face Inference Providers (verified live 2026-11-03:
-# meta-models/Muse-Spark-Open-816B-A42B -> provider baseten, task conversational;
-# the model's chat template natively renders `tools`). HF's OpenAI-compatible
-# router; check the current URL in huggingface.co/docs/inference-providers.
+# base A42B -> provider baseten; NVFP4 quant -> provider together with the
+# ":together" model suffix — both task conversational; the chat template
+# natively renders `tools`). HF's OpenAI-compatible router; check the current
+# URL in huggingface.co/docs/inference-providers.
 HF_DEFAULT_BASE_URL = "https://router.huggingface.co/v1"
 HF_DEFAULT_MODEL = "meta-models/Muse-Spark-Open-816B-A42B"
+# cheaper route: export MUSE_SPARK_MODEL="meta-models/Muse-Spark-Open-816B-A42B-NVFP4:together"
 
 
 def resolve_muse_key(env: Mapping[str, str]) -> tuple[str | None, str | None]:
