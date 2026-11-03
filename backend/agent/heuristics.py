@@ -34,6 +34,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
     hourly = (ctx.get("delivery_hour") or {}).get("data") or {}
     bids_outcome = ctx.get("bids_outcome") or {}
     bids_seller = ctx.get("bids_seller") or {}
+    bids_geo = ctx.get("bids_geo") or {}
     bench = (ctx.get("benchmark") or {}).get("data") or {}
 
     totals = daily.get("totals", {})
@@ -103,40 +104,51 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
     # 2. Targeting too narrow
     bench_ratio = bench.get("ratio_vs_benchmark")
     bids_total = int(totals.get("bids", 0)) or None
-    if bench_ratio is not None and bids_total is not None and bench_ratio < LOW_BID_VOLUME_RATIO and win_rate > 0.7:
+    narrow_drop = targ_drop > 0.35  # most sampled requests fall outside targeting (data.schemas v0.1)
+    if narrow_drop or (bench_ratio is not None and bids_total is not None
+                       and bench_ratio < LOW_BID_VOLUME_RATIO and win_rate > 0.7):
+        ev = [_ev(f"get_campaign_settings:{campaign_id}",
+                  f"geo={len(settings['targeting']['geo'])}, audience={len(settings['targeting']['audience'])}")]
+        if narrow_drop:
+            ev.insert(0, _ev(f"query_bid_samples:{campaign_id}:outcome",
+                             f"dropped_targeting share {targ_drop:.0%} of sampled requests"))
+        else:
+            ev.insert(0, _ev(f"compare_to_benchmark:{campaign_id}:impressions",
+                             f"bid volume ratio vs healthy control: {bench_ratio:.2f}"))
+            ev.append(_ev(f"query_bid_samples:{campaign_id}:outcome",
+                          f"win share {win_rate:.0%} (little competition inside narrow targeting)"))
         findings.append(Finding(
-            cause="Targeting is too narrow: bid-request volume is far below benchmark while win rate is high",
-            evidence=[
-                _ev(f"compare_to_benchmark:{campaign_id}:impressions",
-                    f"bid volume ratio vs healthy control: {bench_ratio:.2f}"),
-                _ev(f"query_bid_samples:{campaign_id}:outcome",
-                    f"win share {win_rate:.0%} (little competition inside narrow targeting)"),
-                _ev(f"get_campaign_settings:{campaign_id}",
-                    f"geo={len(settings['targeting']['geo'])}, audience={len(settings['targeting']['audience'])}"),
-            ],
-            confidence=0.85,
-            proposed_changes=["Widen geo targeting to neighbouring states",
+            cause="Targeting is too narrow: eligible bid-request volume is far below potential",
+            evidence=ev,
+            confidence=min(0.55 + targ_drop, 0.95) if narrow_drop else 0.85,
+            proposed_changes=["Widen geo targeting to states present in sampled traffic",
                               "Add one broader audience segment"],
-            changes=[{"geo_widen": ["US-MA", "US-NJ", "US-PA"]},
+            changes=[{"geo_widen": _widen_geos(bids_geo, settings)},
                      {"audience_widen": ["lookalike_5pct"]}],
         ))
 
     # 4. Daypart/schedule mismatch
     top4 = hourly.get("top4_impressions_share")
+    sched_drop = shares.get("dropped_schedule", 0.0)
     if top4 is not None and top4 > CONCENTRATION_SHARE and spend_pace < HEALTHY_SPEND_PACE_MIN:
+        ev = [
+            _ev(f"query_delivery:{campaign_id}:hour",
+                f"top-4 hours carry {top4:.0%} of impressions"),
+            _ev(f"query_delivery:{campaign_id}:day",
+                f"spend ${spend:,.0f} of ${budget:,.0f} ({spend_pace:.0%} of budget)"),
+            _ev(f"get_campaign_settings:{campaign_id}",
+                f"dayparts={settings.get('dayparts')}"),
+        ]
+        if sched_drop > 0.20:
+            ev.insert(1, _ev(f"query_bid_samples:{campaign_id}:outcome",
+                             f"dropped_schedule share {sched_drop:.0%} of sampled requests "
+                             f"(hours outside the configured dayparts)"))
         findings.append(Finding(
             cause="Dayparting is too restrictive: delivery concentrates in a few hours and budget stays unspent",
-            evidence=[
-                _ev(f"query_delivery:{campaign_id}:hour",
-                    f"top-4 hours carry {top4:.0%} of impressions"),
-                _ev(f"query_delivery:{campaign_id}:day",
-                    f"spend ${spend:,.0f} of ${budget:,.0f} ({spend_pace:.0%} of budget)"),
-                _ev(f"get_campaign_settings:{campaign_id}",
-                    f"dayparts={settings.get('dayparts')}"),
-            ],
+            evidence=ev,
             confidence=0.85,
-            proposed_changes=["Widen dayparts to 00-08 and 18-23 in addition to current windows"],
-            changes=[{"dayparts": ["00-08", "18-23"]}],
+            proposed_changes=["Open the full 24-hour schedule instead of the narrow window"],
+            changes=[{"dayparts": ["00-24"]}],
         ))
 
     # 5. Overspend from aggressive pacing
@@ -163,7 +175,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
             evidence=[
                 _ev(f"query_bid_samples:{campaign_id}:seller",
                     f"sellers {', '.join(bad['sellers'])} carry {bad['share']:.0%} of estimated spend "
-                    f"with median floor ${bad['floor']} (below campaign norm)"),
+                    f"with median floor ${bad['floor']} and wins priced well below campaign norm"),
             ],
             confidence=0.85,
             proposed_changes=["Block the worst sellers and redistribute spend"],
@@ -212,21 +224,42 @@ def _top_floor_sellers(bids_seller: dict[str, Any]) -> list[str]:
     return sorted(sellers)[:3] or sorted(groups)[:3]
 
 
+def _widen_geos(bids_geo: dict[str, Any], settings: dict[str, Any]) -> list[str]:
+    """Data-driven widening: top sampled geos outside current targeting
+    (where the dropped_targeting traffic actually is)."""
+    targeted = set((settings.get("targeting") or {}).get("geo") or [])
+    groups = (bids_geo.get("data", {}).get("groups", {})) if isinstance(bids_geo, dict) else {}
+    outside = [(g, v.get("n", 0)) for g, v in groups.items() if g not in targeted]
+    outside.sort(key=lambda kv: (-kv[1], kv[0]))
+    top = [g for g, _ in outside[:2]]
+    return top or ["US-MA", "US-NJ", "US-PA"]
+
+
 def _bad_sellers(bids_seller: dict[str, Any]) -> dict[str, Any] | None:
-    """Supply-path signal: top sellers by spend share whose floors are well below
-    the campaign norm (cheap remnant inventory eating the budget)."""
+    """Supply-path signal: top sellers by spend share whose inventory is well
+    below the campaign norm — cheap floors OR suspiciously cheap win prices
+    (remnant supply eating the budget)."""
     groups = (bids_seller.get("data", {}).get("groups", {})) if isinstance(bids_seller, dict) else {}
     if len(groups) < 2:
         return None
     floors = sorted(g.get("median_floor") or 0 for g in groups.values())
     overall_floor = floors[len(floors) // 2]
+    win_prices = sorted(g["median_win_price"] for g in groups.values()
+                        if g.get("median_win_price") is not None)
+    overall_win = win_prices[len(win_prices) // 2] if win_prices else None
     by_spend = sorted(groups.items(), key=lambda kv: -(kv[1].get("estimated_spend_share") or 0))
     top = by_spend[:2]
     top_share = sum(g.get("estimated_spend_share") or 0 for _, g in top)
     if top_share < BAD_SELLER_SPEND_SHARE:
         return None
-    cheap = [(s, g) for s, g in top
-             if overall_floor and (g.get("median_floor") or 0) <= overall_floor * 0.85]
+
+    def _cheap(g: dict[str, Any]) -> bool:
+        if overall_floor and (g.get("median_floor") or 0) <= overall_floor * 0.85:
+            return True
+        wp = g.get("median_win_price")
+        return bool(overall_win and wp is not None and wp <= overall_win * 0.75)
+
+    cheap = [(s, g) for s, g in top if _cheap(g)]
     if not cheap:
         return None
     return {

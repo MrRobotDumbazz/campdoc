@@ -124,6 +124,8 @@ def query_bid_samples(
             g["estimated_spend_share"] = round(sum(win_paid) / max(
                 sum(s.winning_price for s in rows if s.outcome == "win"), 1e-9), 4)
             g["median_floor"] = round(statistics.median([s.floor_price for s in items]), 4)
+            g["median_win_price"] = (round(statistics.median(win_paid), 4)
+                                     if win_paid else None)
         groups[str(key)] = g
 
     top_group, top_g = max(groups.items(), key=lambda kv: kv[1]["n"])

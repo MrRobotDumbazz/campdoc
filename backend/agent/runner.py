@@ -64,10 +64,11 @@ class InvestigationRunner:
             ("query_delivery", {"campaign_id": campaign_id, "group_by": "hour"}),
             ("query_bid_samples", {"campaign_id": campaign_id, "group_by": "outcome"}),
             ("query_bid_samples", {"campaign_id": campaign_id, "group_by": "seller"}),
+            ("query_bid_samples", {"campaign_id": campaign_id, "group_by": "geo"}),
             ("compare_to_benchmark", {"campaign_id": campaign_id, "metric": "impressions"}),
         ]
         self.trace("plan", None, question,
-                   "heuristic plan: settings -> delivery(day,hour) -> bid samples(outcome,seller) -> benchmark")
+                   "heuristic plan: settings -> delivery(day,hour) -> bid samples(outcome,seller,geo) -> benchmark")
         ctx: dict[str, Any] = {}
         key_map = {
             "get_campaign_settings": "settings",
@@ -75,6 +76,7 @@ class InvestigationRunner:
             "query_delivery:hour": "delivery_hour",
             "query_bid_samples:outcome": "bids_outcome",
             "query_bid_samples:seller": "bids_seller",
+            "query_bid_samples:geo": "bids_geo",
             "compare_to_benchmark": "benchmark",
         }
         for name, args in plan:
