@@ -1,102 +1,122 @@
 # Campaign Doctor
 
-**Verifiable AI-агент, который диагностирует и чинит недоставляющие рекламные кампании.**
-Meta Global AI Developer Hackathon 2026, трек *Build for Your World*.
+**A verifiable AI agent that diagnoses and fixes underperforming ad campaigns.**
+Built for the Meta Global AI Developer Hackathon 2026, *Build for Your World* track.
 
-Campaign Doctor принимает delivery-логи, pacing и выборку bid-запросов кампании, находит
-root cause недоставки/перерасхода — с обязательной ссылкой на данные (evidence) — предлагает
-конкретные фиксы и **доказывает каждый фикс реплеем в аукцион-симуляторе** (before/after:
-delivery, spend, win rate, eCPM) до того, как рекомендовать его.
+Campaign Doctor ingests a campaign's delivery logs, pacing data and a sample of bid
+requests, finds the root cause of under-delivery or overspending — every claim backed by
+evidence from the data — proposes concrete fixes, and **proves each fix by replaying it
+in an auction simulator** (before/after: delivery, spend, win rate, eCPM) before
+recommending it. Most hackathon agents stop at "here is a plausible answer"; this one
+has to survive its own verification loop.
 
-## Что построено (build log)
+## What we built (build log)
 
-- **Day 1 (Oct 27):** каркас бэкенда — FastAPI по `/contracts/app.api.yaml` (5 эндпоинтов),
-  инструменты данных с валидацией схем (`/contracts/data.schemas.md`), мок-симулятор
-  (детерминированный, по `/contracts/simulation.api.yaml`), агент-луп (Muse Spark
-  tool-calling + fallback: structured JSON → детерминированные эвристики), verifier
-  «нет evidence — нет диагноза» на уровне кода, 8 мок-кампаний (режимы 1–8 из PRD §8).
-- **D2–D3:** машинная верификация агент-лупа (stub-сервер: tool-calling/JSON-fallback/отказ),
-  юнит-тесты инструментов, отчёт с результатами симуляций (before/after, verified-бейджи,
-  plain-english), контрактные тесты HTTP-клиента симулятора.
-- **D5:** двухслойный verifier — rule-based ref-check + семантический LLM-pass
-  (Muse Spark; при отказе API вердикт rule-based сохраняется).
-- Демо-датасеты — встроенные моки до появления данных зоны ML (`/data`); статус виден в
-  `GET /api/health` (`data_source`).
+- **Day 1 (Oct 27):** backend skeleton — FastAPI implementing `/contracts/app.api.yaml`
+  (5 endpoints), data tools with schema validation (`/contracts/data.schemas.md`),
+  mock simulator (deterministic, per `/contracts/simulation.api.yaml`), agent loop
+  (Muse Spark tool-calling with fallback: structured JSON prompting → deterministic
+  heuristics), an evidence rule enforced in code ("no tool result — no diagnosis"),
+  8 synthetic campaigns (failure modes 1–7 + a healthy control, PRD §8).
+- **D2–D3:** machine-verified agent loop (stub server: tool-calling / JSON fallback /
+  API refusal), unit tests for the data tools, reports with simulation results
+  (before/after, verified badges, plain-English summary), contract tests for the
+  simulator HTTP client; live trace panel and before/after panel in the UI.
+- **D5:** two-layer verifier — rule-based reference check plus a semantic LLM pass
+  (when the API is unavailable, the rule-based verdict stands).
+- **Finish day (Nov 3):** real simulator behind the HTTP contract (integration through
+  the seam, not imports), contract `v1-draft.1` (target direction + pacing diagnostics),
+  eval harness run against the real simulator, Muse Spark Open (Baseten) preset.
+- Synthetic datasets live in `/data` (seeds fixed in `data/datasets/manifest.json`);
+  current status is always visible at `GET /api/health`.
 
-## Архитектура
+## Architecture
 
 ```
 ui (W-2)  ──app.api.yaml──▶  backend (W-1)  ──simulation.api.yaml──▶  simulator (W-3)
                                   │
-                                  ├── agent/   агент-луп, verifier, эвристики
+                                  ├── agent/   agent loop, verifier, heuristics
                                   ├── tools/   query_delivery, query_bid_samples,
                                   │            get_campaign_settings, compare_to_benchmark,
-                                  │            run_simulation (клиент-мок → реальный по контракту)
-                                  ├── api/     FastAPI, store, трейс
-                                  └── evals/   eval harness (PRD §9, Day 7)
+                                  │            run_simulation (mock → real via contract)
+                                  ├── api/     FastAPI, store, trace
+                                  └── evals/   eval harness (PRD §9)
 ```
 
-## Быстрый старт (бэкенд)
+## Quick start
 
 ```bash
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r requirements.txt
-backend/.venv/bin/uvicorn backend.api.main:app --reload --port 8000   # из корня репо
+backend/.venv/bin/uvicorn backend.api.main:app --reload --port 8000   # from the repo root
 ```
 
-- UI сваггер: http://localhost:8000/docs
-- Без env-ключей агент работает в детерминированном heuristic-режиме (офлайн-демо).
-- С ключами Muse Spark (Meta Model API):
+- Swagger UI: http://localhost:8000/docs
+- Without env keys the agent runs in the deterministic heuristic mode (offline demo).
+- Real simulator (finish-day integration):
 
 ```bash
-export MUSE_SPARK_BASE_URL=...   # из доков Meta Model API
-export MUSE_SPARK_API_KEY=...    # никогда не коммитить (только env)
-export MUSE_SPARK_MODEL=...      # опционально
-backend/.venv/bin/python backend/scripts/check_tool_calling.py   # Day-1 проверка tool-calling
+python3 simulator/server.py --port 8100          # from the repo root
+export SIMULATOR_BASE_URL=http://127.0.0.1:8100  # otherwise the mock client is used
 ```
 
-- Реальный симулятор (Day 4–5): `python3 simulator/server.py --port 8100` из корня репо,
-  затем `export SIMULATOR_BASE_URL=http://127.0.0.1:8100` — иначе мок-клиент.
-- Режим Muse Spark Open (открытые веса, Baseten) — **одна переменная**:
+- Muse Spark via Meta Model API:
 
 ```bash
-export BASETEN_API_KEY=...    # модель и URL подставятся сами:
+export MUSE_SPARK_BASE_URL=...   # from the Meta Model API docs
+export MUSE_SPARK_API_KEY=...    # env only, never commit
+export MUSE_SPARK_MODEL=...      # optional
+backend/.venv/bin/python backend/scripts/check_tool_calling.py   # tool-calling check
+```
+
+- Muse Spark Open (open weights, Baseten) — **a single variable**:
+
+```bash
+export BASETEN_API_KEY=...    # model and URL resolve automatically:
                               # meta-models/muse-spark-open-1026 @ inference.baseten.co/v1
-                              # (актуальный URL сверь с docs.baseten.co)
+                              # (verify the current URL against docs.baseten.co)
 ```
 
-- Датасеты зоны ML: положить кампании в `/data` (схемы — `contracts/data.schemas.md`);
-  пока каталог пуст, используются встроенные моки.
+- ML-zone datasets: place campaigns under `/data` (schemas in
+  `contracts/data.schemas.md`); while the directory is empty, built-in mocks are used.
 
-## Заметка о доступе к моделям
+## A note on model access
 
-> **EN:** We applied for the $150 Meta Model API credits through the official form on Day 1 of the building period (Oct 27), well before the Nov 4 deadline. Credits are granted in batches; our request was not fulfilled before our submission freeze, and partner open-weight inference credits (Baseten) were not granted either. The live demo and evals therefore run on the documented fallback chain — a deterministic offline heuristic engine — while the full LLM layer (tool-calling, structured JSON prompting, LLM verifier) is implemented and unit-tested against stub servers. The agent is model-agnostic by design (OpenAI-compatible chat completions + tool calling): Muse Spark via Meta Model API and the open-weight Muse Spark Open (`meta-models/muse-spark-open-1026` via partner inference) attach through environment variables with no code changes (PRD 6.7).
+We applied for the $150 Meta Model API credits through the official form on Day 1 of
+the building period (Oct 27), well before the Nov 4 deadline. Credits are granted in
+batches; our request was not fulfilled before our submission freeze, and partner
+open-weight inference credits (Baseten) were not granted either. The live demo and
+evals therefore run on the documented fallback chain — a deterministic offline
+heuristic engine — while the full LLM layer (tool-calling, structured JSON prompting,
+LLM verifier) is implemented and unit-tested against stub servers. The agent is
+model-agnostic by design (OpenAI-compatible chat completions + tool calling): Muse
+Spark via Meta Model API and the open-weight Muse Spark Open
+(`meta-models/muse-spark-open-1026`) attach through environment variables with no code
+changes (PRD 6.7). The active mode is reported by `GET /api/health` (`agent_mode`).
 
-- Заявку на $150 кредитов Meta Model API подали в первый день застройки (27 окт, официальная форма) — задолго до дедлайна 4 ноя 21:00 ET.
-- Кредиты выделяются батчами; наша заявка не была удовлетворена до фиксации сабмита. Кредиты партнёрского инференса открытых весов (Baseten) также не были выданы.
-- Демо и evals на момент сабмита работают на документированном fallback: детерминированный heuristic-режим (офлайн, воспроизводимо); LLM-слой (tool-calling, structured JSON prompting, LLM-verifier) реализован и покрыт тестами против stub-серверов.
-- Агент модель-агностичен: Muse Spark (Meta Model API) и открытые веса Muse Spark Open (`meta-models/muse-spark-open-1026`) подключаются env-переменными без правок кода. Текущий режим — `GET /api/health`, поле `agent_mode`.
+## Eval results (PRD §9; seed 42; judges can re-run: `backend/.venv/bin/python backend/evals/run_evals.py`)
 
-## Eval-результаты (PRD §9; seed 42; жюри-перезапуск: `backend/.venv/bin/python backend/evals/run_evals.py`)
+Run configuration: sim=real (HTTP, contract `simulation.api.yaml` v1-draft.1),
+agent=heuristic (deterministic offline engine; the LLM layer attaches via env — see the
+model access note). Per-campaign table: `backend/evals/results.md`. Tests: 99 passed.
 
-Режим прогона: sim=real (HTTP, контракт `simulation.api.yaml` v1-draft.1), agent=heuristic
-(детерминированный офлайн-движок; LLM-слой подключается env — см. заметку о доступе к моделям).
-По-кампанная таблица: `backend/evals/results.md`. Тесты: 99 passed.
-
-| Метрика | Таргет | Результат |
+| Metric | Target | Result |
 |---|---|---|
 | Diagnosis top-1 | ≥ 80% | **100%** |
 | Diagnosis top-3 | ≥ 90% | **100%** |
-| Groundedness после verifier | ≥ 95% | **100%** |
-| Fix success rate (verified в симуляторе) | ≥ 75% | **100%** (7/7 режимов) |
-| FP на healthy control | 0 | **0** |
-| Медиана диагностики | < 60 сек | **12 мс** (эвристики, офлайн) |
+| Groundedness after verifier | ≥ 95% | **100%** |
+| Fix success rate (verified in simulator) | ≥ 75% | **100%** (7/7 modes) |
+| False positives on healthy control | 0 | **0** |
+| Median diagnosis time | < 60 s | **12 ms** (heuristics, offline) |
 
-## Репозиторий
+## Repository
 
-`/backend` — FastAPI + агент (зона W-1) · `/ui` — фронтенд (W-2) · `/simulator` `/data` — ML (W-3)
-· `/contracts` — швы-контракты · `/docs` — PRD и документация.
+`/backend` — FastAPI + agent (zone W-1) · `/ui` — frontend (W-2) · `/simulator`, `/data`
+— ML (W-3) · `/contracts` — seam contracts · `/docs` — PRD and documentation.
+The repo was built by parallel AI-agent sessions under a zero-trust governance layer
+(see `AGENTS.md`, `.ztacp/`) with a single human principal — hence the zone-prefixed
+commit history. All product code was written during the hackathon (Oct 27 – Nov 4, 2026).
 
 ---
-*Built during the Meta Global AI Developer Hackathon (Oct 27 – Nov 4, 2026). Симуляции —
-прогноз на выборке данных, не гарантия.*
+*Built during the Meta Global AI Developer Hackathon (Oct 27 – Nov 4, 2026).
+Simulations are a forecast on sampled data, not a guarantee.*
