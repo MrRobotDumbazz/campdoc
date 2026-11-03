@@ -15,14 +15,24 @@ BACKEND_ROOT = Path(__file__).resolve().parent
 BASETEN_DEFAULT_BASE_URL = "https://inference.baseten.co/v1"  # проверь актуальный URL в docs.baseten.co
 BASETEN_DEFAULT_MODEL = "meta-models/muse-spark-open-1026"
 
+# Muse Spark Open via Hugging Face Inference Providers (verified live 2026-11-03:
+# meta-models/Muse-Spark-Open-816B-A42B -> provider baseten, task conversational;
+# the model's chat template natively renders `tools`). HF's OpenAI-compatible
+# router; check the current URL in huggingface.co/docs/inference-providers.
+HF_DEFAULT_BASE_URL = "https://router.huggingface.co/v1"
+HF_DEFAULT_MODEL = "meta-models/Muse-Spark-Open-816B-A42B"
+
 
 def resolve_muse_key(env: Mapping[str, str]) -> tuple[str | None, str | None]:
-    """(key, source): MUSE_SPARK_API_KEY/MUSESPARK_API_KEY first, BASETEN_API_KEY second."""
+    """(key, source): MUSE_SPARK_API_KEY/MUSESPARK_API_KEY, then BASETEN_API_KEY, then HF_TOKEN."""
     key = env.get("MUSE_SPARK_API_KEY") or env.get("MUSESPARK_API_KEY")
     if key:
         return key, "muse"
     if env.get("BASETEN_API_KEY"):
         return env["BASETEN_API_KEY"], "baseten"
+    hf = env.get("HF_TOKEN") or env.get("HUGGINGFACE_API_KEY")
+    if hf:
+        return hf, "hf"
     return None, None
 
 
@@ -30,8 +40,11 @@ def resolve_muse_base_url(env: Mapping[str, str]) -> str | None:
     url = env.get("MUSE_SPARK_BASE_URL")
     if url:
         return url
-    if resolve_muse_key(env)[1] == "baseten":
+    source = resolve_muse_key(env)[1]
+    if source == "baseten":
         return BASETEN_DEFAULT_BASE_URL
+    if source == "hf":
+        return HF_DEFAULT_BASE_URL
     return None
 
 
@@ -39,8 +52,11 @@ def resolve_muse_model(env: Mapping[str, str]) -> str:
     model = env.get("MUSE_SPARK_MODEL")
     if model:
         return model
-    if resolve_muse_key(env)[1] == "baseten":
+    source = resolve_muse_key(env)[1]
+    if source == "baseten":
         return BASETEN_DEFAULT_MODEL
+    if source == "hf":
+        return HF_DEFAULT_MODEL
     return "muse-spark"
 
 
@@ -70,12 +86,13 @@ class Settings:
     def llm_backend(self) -> str:
         """Which LLM backend the agent would use:
         - "auto": no credentials resolved -> heuristic engine (offline demo);
-        - "open_weights": key came from BASETEN_API_KEY or the model is prefixed
-          "meta-models/" (PRD 6.7, e.g. meta-models/muse-spark-open-1026);
+        - "open_weights": key came from BASETEN_API_KEY/HF_TOKEN or the model is
+          prefixed "meta-models/" (PRD 6.7, e.g. meta-models/muse-spark-open-1026);
         - "meta_api": hosted Muse Spark credentials."""
         if not self.llm_available:
             return "auto"
-        if self.muse_key_source == "baseten" or self.muse_model.startswith("meta-models/"):
+        if (self.muse_key_source in ("baseten", "hf")
+                or self.muse_model.startswith("meta-models/")):
             return "open_weights"
         return "meta_api"
 

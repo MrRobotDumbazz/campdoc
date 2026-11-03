@@ -69,12 +69,14 @@ export MUSE_SPARK_MODEL=...      # optional
 backend/.venv/bin/python backend/scripts/check_tool_calling.py   # tool-calling check
 ```
 
-- Muse Spark Open (open weights, Baseten) — **a single variable**:
+- Muse Spark Open (open weights) — **a single variable**, two routes:
 
 ```bash
-export BASETEN_API_KEY=...    # model and URL resolve automatically:
-                              # meta-models/muse-spark-open-1026 @ inference.baseten.co/v1
-                              # (verify the current URL against docs.baseten.co)
+export BASETEN_API_KEY=...   # direct: meta-models/muse-spark-open-1026 @ inference.baseten.co/v1
+                             # (verify the current URL against docs.baseten.co)
+# or, via Hugging Face Inference Providers (verified live: the model is served
+# through HF's Baseten provider; HF's OpenAI-compatible router):
+export HF_TOKEN=...          # meta-models/Muse-Spark-Open-816B-A42B @ router.huggingface.co/v1
 ```
 
 - ML-zone datasets: place campaigns under `/data` (schemas in

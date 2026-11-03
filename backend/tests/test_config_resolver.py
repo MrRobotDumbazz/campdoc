@@ -1,5 +1,5 @@
-"""Baseten (Muse Spark Open) preset resolver: env fallbacks and llm_backend
-selection (config.py, PRD 6.7 open-weights)."""
+"""Baseten / Hugging Face (Muse Spark Open) preset resolvers: env fallbacks and
+llm_backend selection (config.py, PRD 6.7 open-weights)."""
 from __future__ import annotations
 
 import pytest
@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 from pathlib import Path
 
 from backend.config import (BASETEN_DEFAULT_BASE_URL, BASETEN_DEFAULT_MODEL,
-                            Settings)
+                            HF_DEFAULT_BASE_URL, HF_DEFAULT_MODEL, Settings)
 
 MUSE_ENV = ("MUSE_SPARK_API_KEY", "MUSESPARK_API_KEY", "BASETEN_API_KEY",
+            "HF_TOKEN", "HUGGINGFACE_API_KEY",
             "MUSE_SPARK_BASE_URL", "MUSE_SPARK_MODEL")
 
 
@@ -93,3 +94,42 @@ def test_health_surfaces_baseten_preset(monkeypatch, tmp_path):
     assert out["agent_mode"] == "llm"
     assert out["llm_backend"] == "open_weights"
     assert out["llm_model"] == BASETEN_DEFAULT_MODEL
+
+
+def test_hf_token_alone_arms_open_weights_preset(monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "hf_tok")
+    s = make_settings()
+    assert s.muse_api_key == "hf_tok"
+    assert s.muse_key_source == "hf"
+    assert s.muse_base_url == HF_DEFAULT_BASE_URL
+    assert s.muse_model == HF_DEFAULT_MODEL == "meta-models/Muse-Spark-Open-816B-A42B"
+    assert s.llm_available
+    assert s.llm_backend == "open_weights"
+
+
+def test_huggingface_api_key_alias_works(monkeypatch):
+    monkeypatch.setenv("HUGGINGFACE_API_KEY", "hf_key")
+    s = make_settings()
+    assert s.muse_key_source == "hf"
+    assert s.llm_backend == "open_weights"
+
+
+def test_priority_muse_then_baseten_then_hf(monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "hf_tok")
+    monkeypatch.setenv("BASETEN_API_KEY", "bk-123")
+    s = make_settings()
+    assert s.muse_key_source == "baseten"
+    monkeypatch.setenv("MUSE_SPARK_API_KEY", "mk-1")
+    monkeypatch.setenv("MUSE_SPARK_BASE_URL", "https://muse.example")
+    s2 = make_settings()
+    assert s2.muse_key_source == "muse"
+
+
+def test_hf_preset_respects_explicit_url_and_model(monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "hf_tok")
+    monkeypatch.setenv("MUSE_SPARK_BASE_URL", "https://proxy.example/v1")
+    monkeypatch.setenv("MUSE_SPARK_MODEL", "meta-models/Muse-Glimmer-30B")
+    s = make_settings()
+    assert s.muse_base_url == "https://proxy.example/v1"
+    assert s.muse_model == "meta-models/Muse-Glimmer-30B"
+    assert s.llm_backend == "open_weights"
