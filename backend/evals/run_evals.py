@@ -6,9 +6,11 @@ Deterministic offline run over the shared datasets (data/datasets, seed 42):
   explicit cause->mode table mirroring agent/heuristics.py rule causes.
 - Groundedness: verifier pass (claims_grounded / claims_total, rule-based).
 - Fix success: the top finding's structural changes[] replayed in the
-  simulator (mock client by default; SIMULATOR_BASE_URL switches to the real
-  simulator seam). Fix verified iff the simulator says verified=True for at
-  least one proposed change (per-mode target metric, see MODE_TARGET_METRIC).
+  simulator with each fix's own target (metric + direction, v1-draft.1);
+  the mock client is used by default, SIMULATOR_BASE_URL switches to the
+  real simulator seam. Fix verified iff the simulator says verified=True
+  for at least one proposed change, or — for pacing/daily_cap fixes — the
+  pacing block shows active_days recovery >= 3 days (contract v1-draft.1).
 - False positives: healthy control must yield the "no major issue" verdict.
 - Efficiency: median wall time of a full investigation.
 
@@ -27,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from backend.config import Settings, get_settings  # noqa: E402
+from backend.agent.findings import flatten_fixes  # noqa: E402
 from backend.agent.runner import InvestigationRunner  # noqa: E402
 from backend.tools import ToolRegistry, make_simulation_client  # noqa: E402
 from backend.tools.loader import DatasetRepository  # noqa: E402
@@ -49,13 +52,33 @@ CAUSE_MODE_TABLE: list[tuple[str, int]] = [
     ("no major issue", 0),                   # healthy-control verdict
 ]
 
-# Fix-verification target per mode: the metric the seeded fix is expected to
-# move. Overspend (5) -> spend down; supply-path junk (7) -> spend off cheap
-# sellers; everything else -> impressions up. (Direction handling belongs to
-# the simulator: the mock treats spend/ecpm as lower-is-better.)
-MODE_TARGET_METRIC: dict[int, str] = {5: "spend", 7: "spend"}
+# Fix-verification: each fix carries its simulation target (v1-draft.1) —
+# impressions+increase for delivery failures (fm1-fm4), spend+decrease for
+# overspend/junk-supply (fm5, fm7), spend+increase for floor unblocking (fm6).
+# A fix is verified iff the simulator says verified=True for at least one
+# proposed change; pacing/daily_cap fixes additionally verify via the pacing
+# block (see _fix_verified).
 
 HEALTHY_MODES = {0, 8}
+
+
+def _fix_verified(out: dict, change: dict) -> tuple[bool, str]:
+    """Verification verdict + which path proved it.
+
+    Paths:
+    - "totals": simulator verified=True (Δ(target) >= threshold in target_direction);
+    - "pacing": contract v1-draft.1 pacing block — pacing/daily_cap fixes count
+      as verified when active_days spread improves by >= 3 days even if the
+      totals barely move (fm5: spend shape, not volume, is the failure)."""
+    if out.get("verified"):
+        return True, "totals"
+    if "pacing" in change or "daily_budget_cap" in change:
+        pacing = out.get("pacing") or {}
+        before = (pacing.get("before") or {}).get("active_days")
+        after = (pacing.get("after") or {}).get("active_days")
+        if before is not None and after is not None and after - before >= 3:
+            return True, "pacing"
+    return False, ""
 
 
 def cause_to_mode(cause: str) -> int | None:
@@ -86,23 +109,27 @@ def run_eval(settings: Settings) -> str:
         top1_ok = top1 == true_mode
         top3_ok = true_mode in top3
 
-        # Fix success: replay each structural change of the TOP finding.
+        # Fix success: replay each structural change of the TOP finding with
+        # the fix's own target (metric + direction, simulation.api.yaml v1-draft.1).
         fix_verified = None
+        fix_path = ""
         if true_mode not in HEALTHY_MODES and findings:
-            target = MODE_TARGET_METRIC.get(true_mode, "impressions")
             fix_verified = False
-            for change in findings[0].changes:
+            for change, metric, direction in ((fx["changes"], fx["target_metric"],
+                                               fx["target_direction"])
+                                              for fx in flatten_fixes(findings[:1])):
                 if not change:
                     continue
-                out = sim.run_simulation(cid, SEED, change, None, target)
-                if out.get("verified"):
-                    fix_verified = True
+                out = sim.run_simulation(cid, SEED, change, None, metric, direction)
+                ok, path = _fix_verified(out, change)
+                if ok:
+                    fix_verified, fix_path = True, path
                     break
 
         rows.append({
             "campaign": cid, "mode": true_mode, "top1_ok": top1_ok, "top3_ok": top3_ok,
             "claims_grounded": verifier.claims_grounded, "claims_total": verifier.claims_total,
-            "fix_verified": fix_verified, "elapsed_ms": elapsed_ms,
+            "fix_verified": fix_verified, "fix_path": fix_path, "elapsed_ms": elapsed_ms,
         })
 
     problem = [r for r in rows if r["mode"] not in HEALTHY_MODES]
@@ -120,9 +147,12 @@ def run_eval(settings: Settings) -> str:
     def pct(x: float) -> str:
         return f"{x * 100:.1f}%"
 
-    mode_note = f"heuristic-mode (LLM pending), simulator: {sim.name}"
     if settings.simulator_base_url:
-        mode_note += f" @ {settings.simulator_base_url}"
+        mode_note = (f"sim=real (HTTP @ {settings.simulator_base_url}, "
+                     f"контракт simulation.api.yaml v1-draft.1), "
+                     f"agent=heuristic (LLM pending open-weights)")
+    else:
+        mode_note = "sim=mock (in-process), agent=heuristic (LLM pending open-weights)"
 
     lines = [
         "# Campaign Doctor — eval results (PRD §9)",
@@ -147,7 +177,12 @@ def run_eval(settings: Settings) -> str:
     ]
     for r in rows:
         g = f"{r['claims_grounded']}/{r['claims_total']}"
-        fix = "—" if r["fix_verified"] is None else ("yes" if r["fix_verified"] else "no")
+        if r["fix_verified"] is None:
+            fix = "—"
+        elif r["fix_verified"]:
+            fix = "yes" + (f" ({r['fix_path']})" if r["fix_path"] else "")
+        else:
+            fix = "no"
         lines.append(
             f"| {r['campaign']} | {r['mode']} | {'✅' if r['top1_ok'] else '❌'} "
             f"| {'✅' if r['top3_ok'] else '❌'} | {g} | {fix} | {r['elapsed_ms']:.0f} ms |")

@@ -59,3 +59,26 @@ def test_limitation_note_always_present(tmp_path):
     sim = make_simulation_client(repo, Settings(data_dir=repo._data_dir, state_dir=tmp_path))
     out = sim.run_simulation("control_healthy", 0, {}, None)
     assert out["notes"], "notes must always include the limitation note"
+
+
+def test_direction_decrease_flips_improvement_semantics(tmp_path):
+    """v1-draft.1: target_direction decides which delta sign is an improvement."""
+    repo = make_repo(tmp_path)
+    sim = make_simulation_client(repo, Settings(data_dir=repo._data_dir, state_dir=tmp_path))
+    # blocking the junk sellers on camp_007 lowers spend: improvement only for spend+decrease
+    change = {"block_sellers": ["ssp_13", "ssp_17"]}
+    out = sim.run_simulation("camp_007_sellers", 1, change, None, "spend", "decrease")
+    assert out["after"]["spend"] < out["before"]["spend"]
+    assert out["verified"] is True
+    same = sim.run_simulation("camp_007_sellers", 1, change, None, "spend", "increase")
+    assert same["verified"] is False
+
+
+def test_invalid_direction_rejected(tmp_path):
+    repo = make_repo(tmp_path)
+    sim = make_simulation_client(repo, Settings(data_dir=repo._data_dir, state_dir=tmp_path))
+    import pytest
+    from backend.tools.base import ToolError
+    with pytest.raises(ToolError):
+        sim.run_simulation("camp_001_bid_low", 1, {"bid_delta_pct": 10}, None,
+                           "impressions", "sideways")

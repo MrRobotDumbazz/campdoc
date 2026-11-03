@@ -98,18 +98,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not 0 <= idx < len(fixes):
             return _err(404, "unknown fix index", f"valid range 0..{len(fixes) - 1}")  # type: ignore[return-value]
         fx = fixes[idx]
+        # request overrides > the fix's own target (simulation.api.yaml v1-draft.1)
+        target_metric = req.target_metric or fx.get("target_metric", "impressions")
+        target_direction = req.target_direction or fx.get("target_direction", "increase")
         try:
             out = sim.run_simulation(campaign_id=inv.campaign_id, seed=req.seed,
                                      changes=fx["changes"], constraints=req.constraints,
-                                     target_metric=req.target_metric)
+                                     target_metric=target_metric,
+                                     target_direction=target_direction)
         except ToolError as e:
             return _err(422, "simulation failed", str(e))  # type: ignore[return-value]
         store.record_simulation(investigation_id, idx,
-                                {"seed": req.seed, "target_metric": req.target_metric,
+                                {"seed": req.seed, "target_metric": target_metric,
+                                 "target_direction": target_direction,
                                  "description": fx["description"]}, out)
-        return SimulateResponse(**{k: out[k] for k in
-                                   ("before", "after", "delta", "verified", "threshold_pct",
-                                    "violated_constraints", "notes")})
+        body = {k: out[k] for k in ("before", "after", "delta", "verified", "threshold_pct",
+                                    "violated_constraints", "notes")}
+        body["pacing"] = out.get("pacing")
+        return SimulateResponse(**body)
 
     @app.get("/api/investigations/{investigation_id}/report.md")
     def report_md(investigation_id: str):

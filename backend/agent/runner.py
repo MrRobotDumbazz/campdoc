@@ -216,6 +216,7 @@ def _parse_findings(raw: Any) -> list[Finding]:
             confidence=float(item.get("confidence", 0.5)),
             proposed_changes=[str(c) for c in item.get("proposed_changes", [])],
             changes=[c if isinstance(c, dict) else {} for c in item.get("changes", [])],
+            targets=[t for t in item.get("targets", []) if isinstance(t, dict)],
         ))
     return out
 

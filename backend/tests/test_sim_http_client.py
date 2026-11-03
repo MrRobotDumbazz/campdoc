@@ -50,7 +50,23 @@ def test_request_shape_matches_contract():
     assert body["changes"] == {"bid_delta_pct": 20}
     assert body["constraints"] == {"max_ecpm": 3.0}
     assert body["target_metric"] == "impressions"
+    assert body["target_direction"] == "increase"  # v1-draft.1 default
     assert out == CONTRACT_OUTPUT
+
+
+def test_request_carries_explicit_direction():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+        captured["json"] = _json.loads(request.content)
+        return httpx.Response(200, json=CONTRACT_OUTPUT)
+
+    client = make_client(handler)
+    client.run_simulation("fm7_supply", 42, {"block_sellers": ["ssp_7"]},
+                          None, "spend", "decrease")
+    assert captured["json"]["target_direction"] == "decrease"
+    assert captured["json"]["target_metric"] == "spend"
 
 
 def test_response_missing_contract_field_rejected():
@@ -84,7 +100,7 @@ class _ContractOnlySim:
     name = "stub"
 
     def run_simulation(self, campaign_id, seed, changes, constraints,
-                       target_metric="impressions"):
+                       target_metric="impressions", target_direction="increase"):
         return {
             "before": {"impressions": 1000, "spend": 50.0, "win_rate": 0.2, "ecpm": 2.0},
             "after": {"impressions": 1200, "spend": 60.0, "win_rate": 0.3, "ecpm": 2.0},
@@ -112,9 +128,9 @@ def test_run_simulation_tool_safe_text_when_pct_not_computible(tmp_path):
 
     class _ZeroBefore(_ContractOnlySim):
         def run_simulation(self, campaign_id, seed, changes, constraints,
-                           target_metric="impressions"):
+                           target_metric="impressions", target_direction="increase"):
             out = super().run_simulation(campaign_id, seed, changes, constraints,
-                                         target_metric)
+                                         target_metric, target_direction)
             out["before"]["impressions"] = 0
             out["after"]["impressions"] = 0
             out["delta"]["impressions"] = 0
@@ -127,3 +143,25 @@ def test_run_simulation_tool_safe_text_when_pct_not_computible(tmp_path):
     res = registry.call("run_simulation", {"campaign_id": "camp_001_bid_low", "seed": 42})
     assert "delta(impressions)=0" in res.summary
     assert "delta_pct" not in res.summary
+
+
+def test_run_simulation_tool_passes_direction_to_client(tmp_path):
+    from backend.tools import ToolRegistry
+
+    captured: dict = {}
+
+    class _CapturingSim(_ContractOnlySim):
+        def run_simulation(self, campaign_id, seed, changes, constraints,
+                           target_metric="impressions", target_direction="increase"):
+            captured["metric"] = target_metric
+            captured["direction"] = target_direction
+            return super().run_simulation(campaign_id, seed, changes, constraints,
+                                          target_metric, target_direction)
+
+    settings = Settings(data_dir=tmp_path / "no", state_dir=tmp_path)
+    repo = DatasetRepository(settings.data_dir)
+    registry = ToolRegistry(repo, settings)
+    registry.sim = _CapturingSim()
+    registry.call("run_simulation", {"campaign_id": "camp_001_bid_low", "seed": 42,
+                                     "target_metric": "spend", "target_direction": "decrease"})
+    assert captured == {"metric": "spend", "direction": "decrease"}

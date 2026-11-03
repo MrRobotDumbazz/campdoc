@@ -21,6 +21,14 @@ EARLY_EXHAUST_SPEND_SHARE = 0.9
 BAD_SELLER_SPEND_SHARE = 0.5
 HEALTHY_SPEND_PACE_MIN = 0.85
 
+# Verification targets per failure mode (simulation.api.yaml v1-draft.1 input):
+# fm1-fm4 recover delivery -> impressions+increase; fm6 unblocks wins -> spend+increase;
+# fm5 stops overspend -> spend+decrease (verified via totals or the pacing block);
+# fm7 moves spend off junk sellers -> spend+decrease.
+_IMP_UP = {"target_metric": "impressions", "target_direction": "increase"}
+_SPEND_UP = {"target_metric": "spend", "target_direction": "increase"}
+_SPEND_DOWN = {"target_metric": "spend", "target_direction": "decrease"}
+
 
 def _ev(ref: str, summary: str) -> Evidence:
     tool = ref.split(":", 1)[0]
@@ -67,6 +75,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
                 "Switch to a goal-based bid strategy",
             ],
             changes=[{"bid_delta_pct": 20}, {"bid_delta_pct": 20}],
+            targets=[_IMP_UP, _IMP_UP],
         ))
 
     # 6. Floor price conflicts
@@ -84,6 +93,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
                 "Block high-floor sellers and redistribute",
             ],
             changes=[{"bid_delta_pct": 25}, {"block_sellers": _top_floor_sellers(bids_seller)}],
+            targets=[_SPEND_UP, _SPEND_UP],
         ))
 
     # 3. Frequency cap too strict
@@ -99,6 +109,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
             confidence=min(0.55 + freq_drop, 0.95),
             proposed_changes=["Relax the frequency cap to 5 per day"],
             changes=[{"frequency_cap": 5}],
+            targets=[_IMP_UP],
         ))
 
     # 2. Targeting too narrow
@@ -125,6 +136,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
                               "Add one broader audience segment"],
             changes=[{"geo_widen": _widen_geos(bids_geo, settings)},
                      {"audience_widen": ["lookalike_5pct"]}],
+            targets=[_IMP_UP, _IMP_UP],
         ))
 
     # 4. Daypart/schedule mismatch
@@ -149,6 +161,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
             confidence=0.85,
             proposed_changes=["Open the full 24-hour schedule instead of the narrow window"],
             changes=[{"dayparts": ["00-24"]}],
+            targets=[_IMP_UP],
         ))
 
     # 5. Overspend from aggressive pacing
@@ -165,6 +178,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
             confidence=0.9,
             proposed_changes=["Switch to even pacing with a daily budget cap"],
             changes=[{"pacing": "even", "daily_budget_cap": round(budget / 14, 2)}],
+            targets=[_SPEND_DOWN],
         ))
 
     # 7. Low-quality supply path
@@ -180,6 +194,7 @@ def analyze(ctx: dict[str, Any], campaign_id: str) -> list[Finding]:
             confidence=0.85,
             proposed_changes=["Block the worst sellers and redistribute spend"],
             changes=[{"block_sellers": bad["sellers"]}],
+            targets=[_SPEND_DOWN],
         ))
 
     # 8. Healthy control: say so, do not invent problems

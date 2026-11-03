@@ -63,7 +63,10 @@ class InvestigationOut(BaseModel):
 
 class SimulateRequest(BaseModel):
     seed: int = 0
-    target_metric: Literal["impressions", "spend", "win_rate", "ecpm"] = "impressions"
+    # optional overrides; when omitted the fix's own target is used
+    # (defaults impressions+increase, simulation.api.yaml v1-draft.1)
+    target_metric: Literal["impressions", "spend", "win_rate", "ecpm"] | None = None
+    target_direction: Literal["increase", "decrease"] | None = None
     constraints: dict | None = None
 
 
@@ -74,6 +77,17 @@ class Metrics(BaseModel):
     ecpm: float
 
 
+class PacingView(BaseModel):
+    active_days: int
+    active_hours: int
+    budget_utilization: float
+
+
+class PacingBlock(BaseModel):
+    before: PacingView
+    after: PacingView
+
+
 class SimulateResponse(BaseModel):
     before: Metrics
     after: Metrics
@@ -82,6 +96,7 @@ class SimulateResponse(BaseModel):
     threshold_pct: float
     violated_constraints: list[str]
     notes: list[str]
+    pacing: PacingBlock | None = None  # contract v1-draft.1; absent in older simulators
 
 
 class ErrorResponse(BaseModel):

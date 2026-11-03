@@ -21,14 +21,14 @@ from .loader import SCALE, CampaignDataset, DatasetRepository
 METRIC_KEYS = ("impressions", "spend", "win_rate", "ecpm")
 LIMITATION_NOTE = "Симуляция на выборке bid-запросов; прогноз, не гарантия (mock-модель до интеграции с симулятором зоны B)."
 DEFAULT_THRESHOLD_PCT = 5.0
-# metrics where "improvement" means decrease rather than increase
-_LOWER_IS_BETTER = {"spend", "ecpm"}
+DIRECTIONS = ("increase", "decrease")
 
 
 class SimulationClient(Protocol):
     def run_simulation(self, campaign_id: str, seed: int, changes: dict[str, Any],
                        constraints: dict[str, Any] | None,
-                       target_metric: str = "impressions") -> dict[str, Any]: ...
+                       target_metric: str = "impressions",
+                       target_direction: str = "increase") -> dict[str, Any]: ...
 
 
 def _effective_bid(settings: dict[str, Any], changes: dict[str, Any]) -> float | None:
@@ -113,9 +113,12 @@ class MockSimulationClient:
 
     def run_simulation(self, campaign_id: str, seed: int, changes: dict[str, Any],
                        constraints: dict[str, Any] | None,
-                       target_metric: str = "impressions") -> dict[str, Any]:
+                       target_metric: str = "impressions",
+                       target_direction: str = "increase") -> dict[str, Any]:
         if target_metric not in METRIC_KEYS:
             raise ToolError(f"target_metric must be one of {METRIC_KEYS}, got '{target_metric}'.")
+        if target_direction not in DIRECTIONS:
+            raise ToolError(f"target_direction must be one of {DIRECTIONS}, got '{target_direction}'.")
         changes = changes or {}
         ds = self.repo.get(campaign_id)
         before = _replay(ds, {})
@@ -126,10 +129,10 @@ class MockSimulationClient:
         for k in METRIC_KEYS:
             delta_pct[k] = round((after[k] - before[k]) / before[k] * 100, 2) if before[k] else (0.0 if after[k] == before[k] else float("inf"))
         threshold = self.threshold_pct
-        if target_metric in _LOWER_IS_BETTER:
-            improved = delta_pct[target_metric] <= -threshold
-        else:
-            improved = delta_pct[target_metric] >= threshold
+        # improvement semantics per simulation.api.yaml v1-draft.1: the delta
+        # must clear the threshold in the requested direction
+        improved = (delta_pct[target_metric] <= -threshold if target_direction == "decrease"
+                    else delta_pct[target_metric] >= threshold)
         violated: list[str] = []
         constraints = constraints or {}
         if constraints.get("budget_cap_total") is not None and after["spend"] > float(constraints["budget_cap_total"]):
@@ -163,9 +166,11 @@ class HttpSimulationClient:
 
     def run_simulation(self, campaign_id: str, seed: int, changes: dict[str, Any],
                        constraints: dict[str, Any] | None,
-                       target_metric: str = "impressions") -> dict[str, Any]:
+                       target_metric: str = "impressions",
+                       target_direction: str = "increase") -> dict[str, Any]:
         payload = {"campaign_id": campaign_id, "seed": seed, "changes": changes,
-                   "constraints": constraints or {}, "target_metric": target_metric}
+                   "constraints": constraints or {}, "target_metric": target_metric,
+                   "target_direction": target_direction}
         resp = self._client.post("/simulate", json=payload)
         if resp.status_code >= 400:
             raise ToolError(f"Simulator error (HTTP {resp.status_code}): {resp.text[:300]}")

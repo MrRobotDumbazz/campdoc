@@ -102,7 +102,8 @@ class InvestigationStore:
             "findings": [f.to_api() for f in inv.findings],
             "verifier": inv.verifier.to_api() if inv.verifier else None,
             "meta": inv.meta, "error": inv.error,
-            "fixes": [{"index": fx["index"], "description": fx["description"], "changes": fx["changes"]}
+            "fixes": [{"index": fx["index"], "description": fx["description"], "changes": fx["changes"],
+                       "target_metric": fx.get("target_metric"), "target_direction": fx.get("target_direction")}
                       for fx in inv.fixes()],
         }
 

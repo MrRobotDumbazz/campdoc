@@ -200,3 +200,49 @@ def test_report_includes_simulation_results(tmp_path):
     # snapshot on disk contains the recorded simulation too
     snap = json.loads((tmp_path / "state" / "investigations" / f"{inv_id}.json").read_text())
     assert "simulations" in snap["meta"] and "0" in snap["meta"]["simulations"]
+
+
+def test_simulate_uses_fix_target_direction_and_returns_pacing(tmp_path, monkeypatch):
+    """v1-draft.1: the fix's own target (fm7 mock: spend+decrease) goes to the
+    simulator unless the request overrides it; the pacing block passes through."""
+    captured: dict = {}
+
+    class _StubSim:
+        name = "stub"
+
+        def run_simulation(self, campaign_id, seed, changes, constraints,
+                           target_metric="impressions", target_direction="increase"):
+            captured.update(metric=target_metric, direction=target_direction,
+                            changes=changes)
+            return {
+                "before": {"impressions": 12594, "spend": 19588.03, "win_rate": 0.5, "ecpm": 1.55},
+                "after": {"impressions": 9115, "spend": 18571.0, "win_rate": 0.45, "ecpm": 2.04},
+                "delta": {"impressions": -3479, "spend": -1017.03, "win_rate": -0.05, "ecpm": 0.49},
+                "verified": True, "threshold_pct": 5.0, "violated_constraints": [],
+                "notes": ["n"],
+                "pacing": {"before": {"active_days": 14, "active_hours": 24,
+                                      "budget_utilization": 0.98},
+                           "after": {"active_days": 14, "active_hours": 24,
+                                     "budget_utilization": 0.93}},
+            }
+
+    monkeypatch.setattr("backend.api.main.make_simulation_client",
+                        lambda repo, settings: _StubSim())
+    settings = Settings(data_dir=tmp_path / "no-data", state_dir=tmp_path / "state")
+    client = TestClient(create_app(settings))
+    inv_id = client.post("/api/ask", json={"campaign_id": "camp_007_sellers",
+                                           "question": "Where does the budget go?"}).json()["investigation_id"]
+    wait_done(client, inv_id)
+
+    r = client.post(f"/api/investigations/{inv_id}/fixes/0/simulate", json={"seed": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert captured["metric"] == "spend" and captured["direction"] == "decrease"
+    assert "block_sellers" in captured["changes"]
+    assert body["pacing"]["after"]["active_days"] == 14
+
+    # explicit request override wins over the fix's own target
+    r2 = client.post(f"/api/investigations/{inv_id}/fixes/0/simulate",
+                     json={"seed": 1, "target_direction": "increase"})
+    assert r2.status_code == 200
+    assert captured["direction"] == "increase"

@@ -68,7 +68,8 @@ class ToolRegistry:
             out = self.sim.run_simulation(
                 campaign_id=args.get("campaign_id"), seed=int(args.get("seed", 0)),
                 changes=args.get("changes") or {}, constraints=args.get("constraints"),
-                target_metric=args.get("target_metric", "impressions"))
+                target_metric=args.get("target_metric", "impressions"),
+                target_direction=args.get("target_direction", "increase"))
             cid = args.get("campaign_id")
             return ToolResult(
                 tool="run_simulation", ref=f"run_simulation:{cid}:{args.get('seed', 0)}",
@@ -155,6 +156,8 @@ TOOL_SPECS: list[dict[str, Any]] = [
                     "changes": {"type": "object"},
                     "constraints": {"type": "object"},
                     "target_metric": {"type": "string", "enum": ["impressions", "spend", "win_rate", "ecpm"]},
+                    "target_direction": {"type": "string", "enum": ["increase", "decrease"],
+                                         "description": "improvement semantics (simulation.api.yaml v1-draft.1); default increase"},
                 },
                 "required": ["campaign_id"],
             },

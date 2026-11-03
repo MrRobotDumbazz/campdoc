@@ -125,6 +125,9 @@ def _sim_table(sim: dict[str, Any]) -> list[str]:
     if r.get("violated_constraints"):
         rows.append("")
         rows.append(f"⚠️ constraints: {'; '.join(r['violated_constraints'])}")
-    rows.append(f"_seed={sim['request'].get('seed')}, target={sim['request'].get('target_metric')}, "
-                f"threshold={r.get('threshold_pct')}%_")
+    target = sim["request"].get("target_metric", "impressions")
+    direction = sim["request"].get("target_direction")
+    rows.append(f"_seed={sim['request'].get('seed')}, target={target}"
+                + (f"+{direction}" if direction else "")
+                + f", threshold={r.get('threshold_pct')}%_")
     return rows

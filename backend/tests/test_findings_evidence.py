@@ -1,7 +1,8 @@
 """The code-level evidence rule (PRD 6.2): no tool evidence -> no diagnosis."""
 from __future__ import annotations
 
-from backend.agent.findings import Evidence, Finding, enforce_evidence
+from backend.agent.findings import (Evidence, Finding, enforce_evidence,
+                                    flatten_fixes)
 
 
 def test_finding_without_evidence_is_removed():
@@ -41,3 +42,23 @@ def test_mixed_findings_split():
     assert [f.cause for f in kept] == ["ok claim"]
     assert report.claims_total == 2
     assert report.claims_grounded == 1
+
+
+def test_flatten_fixes_carries_targets():
+    findings = [Finding(cause="x", confidence=0.9, evidence=[],
+                        proposed_changes=["raise bid", "block junk"],
+                        changes=[{"bid_delta_pct": 25}, {"block_sellers": ["ssp_7"]}],
+                        targets=[{"target_metric": "spend", "target_direction": "increase"},
+                                 {"target_metric": "spend", "target_direction": "decrease"}])]
+    fixes = flatten_fixes(findings)
+    assert fixes[0]["target_metric"] == "spend"
+    assert fixes[0]["target_direction"] == "increase"
+    assert fixes[1]["target_direction"] == "decrease"
+
+
+def test_flatten_fixes_defaults_target_when_missing():
+    findings = [Finding(cause="x", confidence=0.9, evidence=[],
+                        proposed_changes=["open schedule"], changes=[{"dayparts": ["00-24"]}])]
+    fixes = flatten_fixes(findings)
+    assert fixes[0]["target_metric"] == "impressions"
+    assert fixes[0]["target_direction"] == "increase"

@@ -26,6 +26,9 @@ class Finding:
     # structured changes mirror proposed_changes 1:1 (simulation.api.yaml `changes`);
     # internal only, not part of the public API response.
     changes: list[dict[str, Any]] = field(default_factory=list)
+    # verification targets mirroring proposed_changes 1:1 (simulation.api.yaml
+    # v1-draft.1 input): {"target_metric": ..., "target_direction": ...}.
+    targets: list[dict[str, str]] = field(default_factory=list)
 
     def to_api(self) -> dict[str, Any]:
         return {
@@ -50,14 +53,22 @@ class VerifierReport:
         }
 
 
+DEFAULT_TARGET = {"target_metric": "impressions", "target_direction": "increase"}
+
+
 def flatten_fixes(findings: list[Finding]) -> list[dict[str, Any]]:
-    """Flatten (finding, change) pairs across all findings; index = position here."""
+    """Flatten (finding, change) pairs across all findings; index = position here.
+
+    Each fix carries its simulation target (v1-draft.1): the fix's own
+    target_metric/target_direction when the finding supplied one, else the
+    contract defaults (impressions + increase)."""
     out: list[dict[str, Any]] = []
     for fi, f in enumerate(findings):
         for ci, desc in enumerate(f.proposed_changes):
             structured = f.changes[ci] if ci < len(f.changes) else {}
+            target = dict(f.targets[ci] if ci < len(f.targets) else DEFAULT_TARGET)
             out.append({"index": len(out), "finding_index": fi, "change_index": ci,
-                        "description": desc, "changes": structured})
+                        "description": desc, "changes": structured, **target})
     return out
 
 
