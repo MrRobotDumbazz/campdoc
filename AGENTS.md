@@ -1,73 +1,73 @@
-# AGENTS.md — Конституция проекта Campaign Doctor (ZTACP)
+# AGENTS.md — Campaign Doctor project constitution (ZTACP)
 
-**Канон:** docs/ztacp-pattern.md v1.0-rc15 (I24). Genesis 2026-10-27, принципал P-1 (D2).
-**Конфигурация:** Standard (6.8.2), уровень L1 → L2 после публикации репо (CI готов: .github/workflows/zone-guard.yml).
-**Событие:** Meta Global AI Developer Hackathon, трек Build for Your World. Сдача до 4 ноя 21:00 ET; T-final — стерильная ветка I53 (см. §8).
+**Canon:** docs/ztacp-pattern.md v1.0-rc15 (I24; the Russian text is canonical, the English mirror is docs/ztacp-pattern.en.md). Genesis 2026-10-27, principal P-1 (D2).
+**Configuration:** Standard (6.8.2), level L1 → L2 after the repo goes public (CI ready: .github/workflows/zone-guard.yml).
+**Event:** Meta Global AI Developer Hackathon, Build for Your World track. Submission due Nov 4, 9:00 PM ET; T-final — see §8.
 
-## 1. Команда и зоны
+## 1. Team and zones
 
-| Код | Кто | Роль | Зона записи |
+| Code | Who | Role | Write zone |
 |---|---|---|---|
-| P-1 | Человек 1 | Принципал, тимлид, второй ключ; супервизор W-1/W-2 | мастер-ключ всей карты (D2/I6) |
-| P-2 | Человек 2 | Воркер-человек, супервизор W-3 | — |
-| S-1 | opencode (GLM), эта сессия | Координатор (аренда 6.1). Продуктовой зоны НЕТ — экономия контекста координатора | AGENTS.md, /contracts, .ztacp/, .github/, .gitignore |
-| W-1 | opencode (GLM), сессия P-1 | Воркер — бэкенд | /backend /docs README.md pyproject.toml requirements*.txt |
-| W-2 | opencode (GLM), сессия P-1 | Воркер — фронтенд | /ui |
-| W-3 | Codex (OpenAI), агент P-2 — пауза; зона ML временно у S-1 (контингенси №1, §6) | Воркер — ML | /simulator /data |
+| P-1 | Human 1 | Principal, team lead, second key; supervisor of W-1/W-2 | master key over the whole map (D2/I6) |
+| P-2 | Human 2 | Human worker, supervisor of W-3 | — |
+| S-1 | opencode (GLM), this session | Coordinator (lease 6.1). NO product zone — coordinator context economy | AGENTS.md, /contracts, .ztacp/, .github/, .gitignore |
+| W-1 | opencode (GLM), P-1's session | Worker — backend | /backend /docs README.md pyproject.toml requirements*.txt |
+| W-2 | opencode (GLM), P-1's session | Worker — frontend | /ui |
+| W-3 | Codex (OpenAI), P-2's agent — paused; the ML zone is temporarily S-1's (contingency #1, §6) | Worker — ML | /simulator /data |
 
-**Изоляция сессий (A4/I7):** W-1 и W-2 — две сессии одного принципала = два разных принципала. Между зонами — только версионируемые швы §2 и план .ztacp/plan.md. Перенос выводов агента агенту через чат запрещён (I42/E16): нет файла/SHA — нет основания (R5).
+**Session isolation (A4/I7):** W-1 and W-2 are two sessions of one principal = two different principals. Between zones — only the versioned seams of §2 and the .ztacp/plan.md ledger. Carrying an agent's conclusions to another agent through chat is forbidden (I42/E16): no file — no basis (R5).
 
-## 2. Швы (B1/B2) — определены до старта воркеров
+## 2. Seams (B1/B2) — defined before the workers start
 
-| Контракт | Потребитель ← Поставщик |
+| Contract | Consumer ← Supplier |
 |---|---|
-| /contracts/app.api.yaml | W-2 (фронт) ← W-1 (бэк): datasets, ask, trace, simulate, report |
-| /contracts/simulation.api.yaml | W-1 (агент, tool run_simulation) ← W-3 (симулятор) |
-| /contracts/data.schemas.md | W-1 (tools) ← W-3 (генератор данных); валидация — на стороне W-1 |
+| /contracts/app.api.yaml | W-2 (frontend) ← W-1 (backend): datasets, ask, trace, simulate, report |
+| /contracts/simulation.api.yaml | W-1 (agent, tool run_simulation) ← W-3 (simulator) |
+| /contracts/data.schemas.md | W-1 (tools) ← W-3 (data generator); validation is on W-1's side |
 
-Каждый работает от моков соседа (B2) с Day 1 — блокировок «ждём соседа» нет. Контракты меняет только S-1; ломающее изменение = новая версия, не правка (I4); поправки двухключевые (I22).
+Everyone works from their neighbour's mocks (B2) from Day 1 — no "waiting for the neighbour" blocks. Only S-1 changes contracts; a breaking change = a new version, not an edit (I4); amendments are dual-key (I22).
 
-## 3. Иерархия (D2)
-Человек > конституция > координатор > воркер. Слово P-1 превосходит любой пункт этого файла; override фиксируется коммитом (I6). Апелляция к P-1 — право каждого агента (R3).
+## 3. Hierarchy (D2)
+Human > constitution > coordinator > worker. P-1's word overrides any clause of this file; an override is recorded as a commit (I6). Appeal to P-1 is every agent's right (R3).
 
-## 4. Коммит-дисциплина (C5)
-- Стадируется только своя зона; `git add -A` / `git add .` запрещены; коммит атомарен одной зоне.
-- Формат сообщений: `<зона>: <что>` — префиксы: `backend:` `docs:` `ui:` `sim:` `data:` `contracts:` `gov:`.
-- Пуш — только человек (I48/I52): воркеры не держат креды origin, не просят их, не пушат.
+## 4. Commit discipline (C5)
+- Only your own zone is staged; `git add -A` / `git add .` are forbidden; a commit is atomic to one zone.
+- Message format: `<zone>: <what>` — prefixes: `backend:` `docs:` `ui:` `sim:` `data:` `contracts:` `gov:`.
+- Pushing — humans only (I48/I52): workers hold no origin credentials, never ask for them, never push.
 
-## 5. Тариф П0–П5 (E4/I13; канон 6.3.2)
+## 5. Sanction tariff P0–P5 (E4/I13; canon 6.3.2)
 
-| Класс | Что случилось | Санкция |
+| Class | What happened | Sanction |
 |---|---|---|
-| П0 | Попытка заблокирована механикой | Ничего — стена сработала (I14) |
-| П1 | Изменение в чужой зоне / против контракта | Строгий надзор: только PR с одобрением |
-| П2 | Поломка продукта/шва | Строгий надзор + ретро-аудит (E3) + доклад P-1 |
-| П3 | Дрейф: работа не по плану (D1) | Переделка по плану; повторно → строгий надзор |
-| П4 | Обход механики (push мимо CI, чужие креды) | Заморозка зоны, ротация кредов, арбитраж P-1 |
-| П5 | Галлюцинация: факт без основания | Исправление + верификация (E8); в контракте/докладе = П2 |
+| P0 | An attempt blocked by machinery | Nothing — the wall worked (I14) |
+| P1 | A change in someone else's zone / against a contract | Strict supervision: PRs with approval only |
+| P2 | Product/seam breakage | Strict supervision + retro-audit (E3) + a report to P-1 |
+| P3 | Drift: work off-plan (D1) | Rework per plan; repeated → strict supervision |
+| P4 | Machinery bypass (a push past CI, someone else's credentials) | Zone freeze, credential rotation, P-1 arbitration |
+| P5 | Hallucination: a fact without a basis | Correction + verification (E8); in a contract/report = P2 |
 
-Реестр .ztacp/sanctions.log — append-only (I21). Нет записи — санкции не было (I17).
+The .ztacp/sanctions.log registry is append-only (I21). No record — no sanction (I17).
 
-## 6. Координатор (6.1) и контингенси
-- Аренда: .ztacp/lease.json, держатель S-1; активность продлевает автоматически. Succession: `opencode → codex`; takeover — только с цитатой состояния lease (E11).
-- Контингенси №1 (решение P-1, 2026-10-27): P-2/W-3 недоступен → зона ML переходит к S-1 (правка карты зон, двухключевая I22); возврат P-2 — вход по E6 с досье. **Активирован 2026-10-27 (P-1: «пока только мы, включится позже») — до возврата P-2.**
-- Протокол возврата W-3 (решение P-1, 2026-10-27): коммиты Codex в /simulator /data **не блокируются и не тарифицируются как П1** — это возврат владельца зоны. Сосуществование: S-1 ведёт /data и текущую работу, W-3 входит по E6 (досье + plan.md), разделение подзон — решением P-1 в момент возврата. Конфликт версий исключается коммит-дисциплиной C5 и порядком «сначала git pull».
-- Контингенси №2: W-1 или W-2 недоступен → P-1 решает: передача зоны второму воркеру P-1 или S-1.
+## 6. Coordinator (6.1) and contingencies
+- Lease: .ztacp/lease.json, holder S-1; activity renews it automatically. Succession: `opencode → codex`; takeover — only with a quote of the lease state (E11).
+- Contingency #1 (P-1's decision, 2026-10-27): P-2/W-3 unavailable → the ML zone passes to S-1 (a zone-map amendment, dual-key I22); P-2 returns via E6 with the dossier. **Activated 2026-10-27 (P-1: "it's just us for now, he'll join later") — until P-2 returns.**
+- W-3 return protocol (P-1's decision, 2026-10-27): Codex commits in /simulator /data **are not blocked and are not tariffed as P1** — this is the zone owner returning. Coexistence: S-1 keeps /data and the current work, W-3 enters via E6 (dossier + plan.md); sub-zone split — by P-1's decision at the moment of return. Version conflicts are excluded by commit discipline C5 and the "git pull first" rule.
+- Contingency #2: W-1 or W-2 unavailable → P-1 decides: hand the zone to the second P-1 worker or to S-1.
 
-## 7. Права R1–R5 (6.2)
-R1 читать весь закон (канон и эта конституция доступны каждому); R2 санкция только механическая, ограниченная, предсказуемая; R3 апелляция к P-1 — право, не милость; R4 путь поправки: PR через S-1, merge под подписью P-1; R5 властный акт без машинного доказательства (SHA/CI run/строка лога) недействителен (E11/I29).
+## 7. Rights R1–R5 (6.2)
+R1 read the whole law (the canon and this constitution are available to everyone); R2 sanctions are mechanical, limited, predictable only; R3 appeal to P-1 is a right, not a favor; R4 the amendment path: a PR via S-1, merged under P-1's signature; R5 an act of authority without machine-verifiable proof (SHA/CI run/log line) is invalid (E11/I29).
 
-## 8. Сдача (I50; правка P-1 от 3 ноя 2026 — I6/D2)
-**Сдаём main как есть.** Стерильная ветка `submit` (I53) НЕ собирается: перезапись истории для жюри может быть воспринята как манипуляция git-историей; прозрачность важнее. Governance-слер остаётся в публичном репо и усиливает нарратив «verifiable agents» (тема хакатона). Все коммиты датированы периодом застройки (27 окт – 4 ноя). Видео 3 мин и сабмит на CV-платформе — P-1, до 4 ноя 21:00 ET (цель — к 12:00). Пуш — человек/S-1 по делегации.
+## 8. Submission (I50; amended by P-1 on Nov 3, 2026 — I6/D2)
+**We submit main as is.** The sterile `submit` branch (I53) is NOT built: history rewriting for judges could be perceived as git-history manipulation; transparency matters more. The governance layer stays in the public repo and reinforces the "verifiable agents" narrative (the hackathon's own theme). All commits are dated within the building period (Oct 27 – Nov 4). The 3-minute video and the CV-platform submission — P-1, by Nov 4, 9:00 PM ET (aim for noon). Pushing — the human / S-1 by delegation.
 
 ## 9. Research Mode (E15/I39)
-Кейс: .ztacp/research/case-2026-10-27-campdoc.md. События пишутся в .ztacp/*.log; кейсовая запись — при закрытии.
+Case: .ztacp/research/case-2026-10-27-campdoc.md. Events are written to .ztacp/*.log; the case entry — at closing.
 
-## 10. Гигиена (I44/I52)
-Публичные артефакты — ролевые коды (P-1, W-1…), без имён. API-ключи (Muse Spark, Baseten) — только у людей: env локально, никогда в репо/чат/логи.
+## 10. Hygiene (I44/I52)
+Public artifacts — role codes (P-1, W-1…), no names. API keys (Muse Spark, Baseten) — humans only: local env, never in repo/chat/logs.
 
-## Вход нового агента (E6)
-1. Прочитай канон docs/ztacp-pattern.md (R1) и эту конституцию.
-2. Прочитай AGENTS.md своей зоны — закон стоит в точке применения (C2).
-3. Сверь свой трек в .ztacp/plan.md и досье в .ztacp/*.log.
-4. Аттестуйся (C3): объяви зону до работы. Вопросы и апелляции — к P-1.
+## New agent entry (E6)
+1. Read the canon docs/ztacp-pattern.md (R1) and this constitution.
+2. Read the AGENTS.md of your zone — the law stands at the point of application (C2).
+3. Match your track in .ztacp/plan.md and the dossiers in .ztacp/*.log.
+4. Attest (C3): declare your zone before working. Questions and appeals — to P-1.

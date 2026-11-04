@@ -1,48 +1,46 @@
-# План работ (D1 — Plan-as-Ledger)
+# Work plan (D1 — Plan-as-Ledger)
 
-**Проект:** Campaign Doctor (campdoc). **Событие:** Meta Global AI Developer Hackathon, building period Oct 27 – Nov 4.
-**Правило:** этап = коммит; чекбокс закрывается только машинно подтверждаемым артефактом (тест/файл/SHA, E11). План — общий файл, писатель S-1.
+**Project:** Campaign Doctor (campdoc). **Event:** Meta Global AI Developer Hackathon, building period Oct 27 – Nov 4.
+**Rule:** a step = a commit; a checkbox closes only against a machine-checkable artifact (test/file/SHA, E11). The plan is a shared file, writer S-1. **Status at close: submitted (main).**
 
 ## Track 0 — Governance (S-1)
-- [x] Genesis: конституция, зоны W-1/W-2/W-3, контракты v1 (app.api, simulation.api, data.schemas), lease, реестры, research-кейс (2026-10-27)
-- [ ] Первый коммит + пуш человеком (P-1): публичная история с Oct 27 (I48/I52)
-- [ ] CI zone-guard активируется на GitHub; приёмка: PR в чужую зону отклоняется механически (чеклист 9.8)
-- [ ] (опц.) L2: CODEOWNERS + машинные идентичности
+- [x] Genesis: constitution, zones W-1/W-2/W-3, seam contracts v1, lease, registries, research case, CI zone-guard (6bb80b9, 2026-10-27)
+- [x] First commit + push; public history from Oct 27 (I48/I52; push later delegated to S-1 via SSH — 1020c6f)
+- [ ] CI zone-guard activation on GitHub PRs + acceptance run (branch protection never enabled — L1 walls: C5 staging + human/delegated push; defunct at close)
+- [ ] (opt.) L2: CODEOWNERS + machine identities — not reached, honest
 
-## Track A — Бэкенд (W-1, зоны /backend /docs)
-- [x] D1: каркас FastAPI по /contracts/app.api.yaml + мок-режим; README v0; проверка tool-calling Muse Spark (fallback: structured JSON prompting + парсер) — до конца D1 (e74b0d9)
-- [x] D2: query_delivery, query_bid_samples, get_campaign_settings, compare_to_benchmark (валидация схем /contracts/data.schemas.md) (e74b0d9, тесты ac98604)
-- [x] D2–D3: агент-луп: findings JSON {cause, evidence[], confidence, proposed_changes[]}; правило «нет evidence — нет диагноза» в коде; trace log JSON (ac98604: 35 тестов зелёные, S-1 прогон 2026-10-27)
-- [ ] D4–D5: интеграция run_simulation: мок → реальный симулятор W-3 по контракту (контрактные тесты HttpSimulationClient готовы — ad3d8d4; ждут симулятор S-1)
-- [x] D5: verifier pass (groundedness; «verified» при Δ≥5% без нарушения constraints); unsupported claims удаляются/флагуются (9c47348 — LLM-слой поверх rule-based, 44 теста; S-1 прогон: 54/54, 2026-10-27)
-- [ ] D7: eval harness — метрики в README таблицей (таргеты: top-1 80% / top-3 90% / groundedness 95% / fix success 75% / FP=0 / медиана <60с)
-- [ ] D8: README-полировка, «built during hackathon»-секция
+## Track A — Backend (W-1 → S-1+subagents at finish, zones /backend /docs)
+- [x] D1: FastAPI skeleton per /contracts/app.api.yaml + mock mode; README v0; Muse Spark tool-calling check with fallback (e74b0d9)
+- [x] D2: data tools with schema validation (e74b0d9, tests ac98604)
+- [x] D2–D3: agent loop, findings JSON with the evidence rule in code, trace persistence (ac98604: 35 tests; S-1 re-run green)
+- [x] D4–D5: run_simulation integration — contract tests (ad3d8d4) → real simulator over HTTP at finish (c6f1718)
+- [x] D5: verifier pass — rule-based + semantic LLM layer, unsupported claims removed (9c47348: 44 tests)
+- [x] D7: eval harness + metrics (6b8447a, 6f5251b, c6f1718) — final run on the real simulator: top-1 100%, top-3 100%, groundedness 100%, fix success 100%, FP 0, median 12 ms (agent=heuristic, LLM pending)
+- [x] Finish: loader/schema v0.1 catch-up, target_metric+direction, Baseten/HF/Meta presets (aab1645, fb1cec7, 3b0d3fc, b8d9049, c1822b2, 38d8d72, 18a516c)
 
-## Track F — Фронтенд (W-2, зона /ui)
-- [x] D1: каркас UI от моков /contracts/app.api.yaml (B2): выбор датасета, чат-панель (f01db99; сборка проверена S-1 2026-10-27)
-- [x] D2–D3: live trace-панель (polling /investigations/{id}) (45781ae)
-- [x] D4: before/after панель симуляций (verified/unverified бейджи) (020970c)
-- [x] D5–D6: скачивание отчёта .md; состояния loading/error; полировка демо-флоу (900cd2b; сборка проверена S-1)
-- [ ] D8: финальная полировка под сценарий видео (PRD §10)
+## Track F — Frontend (W-2, zone /ui)
+- [x] D1: skeleton from app.api.yaml mocks (f01db99; build verified by S-1)
+- [x] D2–D3: live trace panel (45781ae)
+- [x] D4: before/after panel with verified badges (020970c)
+- [x] D5–D6: report download, loading states, live/mock badge (900cd2b)
+- [x] Finish: full English UI strings + locales (ccd94ec)
 
-## Track B — ML (S-1 acting — контингенси №1 активен 2026-10-27; при возврате P-2 → W-3 по E6; зоны /simulator /data)
-- [x] D1: генераторы синтетики v0 от /contracts/data.schemas.md (13f910a, S-1 acting)
-- [x] D2–D3: полный генератор 8 кампаний + healthy control, все режимы PRD §8 (1–7), data/manifest.json с сидами; 10 тестов зелёные (13f910a)
-- [x] D3: симулятор v0 — реплей bid-сэмплов, first/second price toggle, детерминизм по seed, unit tests (900265a: 16 тестов; калибровка против факта ±5%)
-- [x] D4: режимы 4–6 в данных (13f910a); калибровка симулятора против ground truth (test_calibration_*: healthy/asap/daypart в пределах 15%, факт ~±5%)
-- [x] D5: соответствие /contracts/simulation.api.yaml v1 (schema-тест output; контракт обновлён v0.1 — 25cd09b); интеграция с агентом — Track A D4–D5
+## Track B — ML (S-1 acting — contingency #1 from 2026-10-27; zones /simulator /data)
+- [x] D1: synthetic data generator v0 per data.schemas.md (13f910a)
+- [x] D2–D3: full generator — 8 campaigns, all PRD §8 modes, manifest with seeds; 10 tests (13f910a, 8c25ff9)
+- [x] D3: simulator v0 — deterministic replay, first/second price, pacing layers; calibration vs ground truth ±5% (900265a, a379ac2)
+- [x] D5: contract v1-draft.1 conformance (target_direction, pacing block) + HTTP endpoint + tests (a379ac2, 1d314e5)
 
 ## Track T — Human-only (P-1, P-2)
-- [ ] D1: заявки кредитов: $150 Meta (каждый individually), Baseten $100, Modal $100; кредитка + spend-limit
-- [ ] D1: Discord #intros; сессия Agents 101 (12–13 ET)
-- [ ] D3: черновик сценария видео 3 мин (PRD §10)
-- [ ] D8: запись видео
-- [ ] T-final (правка P-1, 3 ноя): сдаём **main как есть** — стерильная ветка НЕ собирается (риск восприятия как манипуляция историей; прозрачность важнее); видео 3 мин + сабмит на CV-платформе до 4 ноя 21:00 ET (цель — к 12:00)
+- [x] D1: credit applications — Meta $150 (both, individually), Baseten/Modal — submitted Day 1 (granted: none — see README "model access")
+- [ ] Video 3 min per docs/DEMO.md — P-1 (pending at this commit)
+- [x] T-final (P-1's amendment, Nov 3): submit **main as-is** — no sterile branch (risk of perceived history manipulation; transparency wins); CV-platform submission by Nov 4, 9:00 PM ET (aim noon)
 
-## Контингенси (решения P-1, 2026-10-27)
-- №1: P-2/W-3 недоступен → зона ML переходит к S-1 (поправка карты, I22); возврат P-2 — вход по E6 с досье.
-- №2: W-1 или W-2 недоступен → решает P-1: передача зоны второму воркеру P-1 или S-1.
-- S-1 недоступен > ttl+grace (72h+24h) → аренда координатора → codex (6.1, takeover с цитатой lease, E11).
+## Contingencies (P-1's decisions)
+- #1: P-2/W-3 unavailable → ML zone to S-1 (I22). **Activated 2026-10-27, held until close.**
+- #2: W-1/W-2 unavailable → P-1 assigns (unused).
+- #3: No sterile branch; main as-is (Nov 3).
+- Coordinator succession: opencode → codex (unused; lease held by S-1 throughout).
 
-## Milestones (PRD §12 ↔ треки)
-D1 каркасы+синтетика v0 · D2–3 инструменты+луп / симулятор v0 · D4–5 интеграция+verifier · D6 UI-полировка · D7 evals · D8 freeze+видео · D9 сабмит.
+## Milestones (PRD §12 vs actual)
+D1 skeletons + generator ✓ · D2–3 tools+loop / simulator ✓ · D4–5 integration + verifier ✓ (recovered Nov 3 after the Oct 28–Nov 2 stall) · D6 UI ✓ · D7 evals ✓ · D8 freeze ✓ · D9 submission — P-1.
