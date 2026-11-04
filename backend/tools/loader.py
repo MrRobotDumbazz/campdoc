@@ -31,7 +31,7 @@ FLIGHT_DAYS = 14
 FLIGHT_END = date(2026, 10, 24)
 SAMPLES_PER_CAMPAIGN = 2000
 SCALE = 40  # each sampled request represents ~40 real requests (transparent assumption)
-# единый плановый бюджет: 2M показов reference volume по контрольному eCPM (~$2.07)
+# unified planned budget: 2M impressions of reference volume at the control eCPM (~$2.07)
 REFERENCE_BUDGET = round(2_000_000 / 1000 * 2.25 * 0.92, 2)
 
 

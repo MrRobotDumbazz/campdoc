@@ -149,7 +149,7 @@ def run_eval(settings: Settings) -> str:
 
     if settings.simulator_base_url:
         mode_note = (f"sim=real (HTTP @ {settings.simulator_base_url}, "
-                     f"контракт simulation.api.yaml v1-draft.1), "
+                     f"simulation.api.yaml v1-draft.1 contract), "
                      f"agent=heuristic (LLM pending open-weights)")
     else:
         mode_note = "sim=mock (in-process), agent=heuristic (LLM pending open-weights)"

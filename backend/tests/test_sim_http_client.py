@@ -22,7 +22,7 @@ CONTRACT_OUTPUT = {
     "verified": True,
     "threshold_pct": 5.0,
     "violated_constraints": [],
-    "notes": ["Симуляция на выборке bid-запросов; прогноз, не гарантия"],
+    "notes": ["Simulation on a sample of bid requests; a forecast, not a guarantee"],
 }
 
 

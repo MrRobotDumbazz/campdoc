@@ -44,7 +44,7 @@ def test_muse_env_wins_over_baseten(monkeypatch):
     assert s.muse_api_key == "mk-1"
     assert s.muse_key_source == "muse"
     assert s.muse_base_url == "https://muse.example"
-    assert s.muse_model == "muse-spark-1.3"  # документированный дефолт Meta Model API
+    assert s.muse_model == "muse-spark-1.3"  # documented Meta Model API default
     assert s.llm_backend == "meta_api"
 
 
@@ -71,7 +71,7 @@ def test_no_credentials_means_auto_backend(monkeypatch):
 def test_muse_key_defaults_to_documented_meta_api(monkeypatch):
     monkeypatch.setenv("MUSE_SPARK_API_KEY", "mk-1")
     s = make_settings()
-    # официальный Meta Model API: OpenAI-совместимый, base/model из dev.meta.ai/docs
+    # official Meta Model API: OpenAI-compatible, base/model from dev.meta.ai/docs
     from backend.config import META_DEFAULT_BASE_URL, META_DEFAULT_MODEL
     assert s.muse_base_url == META_DEFAULT_BASE_URL == "https://api.meta.ai/v1"
     assert s.muse_model == META_DEFAULT_MODEL == "muse-spark-1.3"

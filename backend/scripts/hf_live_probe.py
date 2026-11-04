@@ -33,7 +33,7 @@ def get_token() -> str | None:
 def main() -> int:
     token = get_token()
     if not token:
-        print("NO TOKEN: env HF_TOKEN or ~/.hf_token отсутствует")
+        print("NO TOKEN: env HF_TOKEN or ~/.hf_token is missing")
         return 2
     model = os.environ.get("MUSE_SPARK_MODEL", HF_DEFAULT_MODEL)
     settings = Settings(muse_api_key=token, muse_key_source="hf",
@@ -50,7 +50,7 @@ def main() -> int:
     text = (resp.content or "").strip()
     print(f"[1] text ping -> {text!r}")
 
-    # 2) tool-calling probe (формат агента, tools/__init__.py)
+    # 2) tool-calling probe (agent format, tools/__init__.py)
     tools = [{
         "type": "function",
         "function": {
@@ -77,7 +77,7 @@ def main() -> int:
         print(f"[2] tool-calling -> OK: {call['name']}({call['arguments']})")
     else:
         print(f"[2] tool-calling -> NO TOOL CALL, content={((resp2.content or '')[:200])!r}")
-        print("    (агент перейдёт на structured JSON prompting — fallback задокументирован)")
+        print("    (the agent will fall back to structured JSON prompting — the fallback is documented)")
     print("probe done")
     return 0
 

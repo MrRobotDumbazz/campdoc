@@ -18,7 +18,7 @@ META_DEFAULT_MODEL = "muse-spark-1.3"
 # Muse Spark Open preset on Baseten (PRD 6.7 open-weights). No new env names
 # for the user: the key falls back to BASETEN_API_KEY; explicit MUSE_SPARK_*
 # env always wins over the preset defaults.
-BASETEN_DEFAULT_BASE_URL = "https://inference.baseten.co/v1"  # проверь актуальный URL в docs.baseten.co
+BASETEN_DEFAULT_BASE_URL = "https://inference.baseten.co/v1"  # check the current URL in docs.baseten.co
 BASETEN_DEFAULT_MODEL = "meta-models/muse-spark-open-1026"
 
 # Muse Spark Open via Hugging Face Inference Providers (verified live 2026-11-03:

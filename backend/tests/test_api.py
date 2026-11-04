@@ -135,7 +135,7 @@ def test_simulate_fix_contract_and_determinism(tmp_path):
     assert isinstance(body["verified"], bool)
     assert body["threshold_pct"] == 5.0
     assert isinstance(body["violated_constraints"], list)
-    assert any("не гарантия" in n or "прогноз" in n for n in body["notes"])
+    assert any("not a guarantee" in n or "forecast" in n for n in body["notes"])
 
     r2 = client.post(f"/api/investigations/{inv_id}/fixes/0/simulate", json={"seed": 42})
     assert r2.json() == body, "same input+seed must give identical output"

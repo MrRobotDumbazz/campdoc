@@ -19,7 +19,7 @@ from .base import ToolError
 from .loader import SCALE, CampaignDataset, DatasetRepository
 
 METRIC_KEYS = ("impressions", "spend", "win_rate", "ecpm")
-LIMITATION_NOTE = "Симуляция на выборке bid-запросов; прогноз, не гарантия (mock-модель до интеграции с симулятором зоны B)."
+LIMITATION_NOTE = "Simulation on a sample of bid requests; a forecast, not a guarantee (mock model until integration with the zone B simulator)."
 DEFAULT_THRESHOLD_PCT = 5.0
 DIRECTIONS = ("increase", "decrease")
 
@@ -142,8 +142,8 @@ class MockSimulationClient:
         verified = improved and not violated
         notes = [
             LIMITATION_NOTE,
-            f"mock-модель: реплей {len(ds.bid_samples)} сэмплов (SCALE={SCALE}); seed={seed} записан, выход детерминирован",
-            "конкурентские цены оценены по залогированным winning_price",
+            f"mock model: replay of {len(ds.bid_samples)} samples (SCALE={SCALE}); seed={seed} recorded, output is deterministic",
+            "competitor prices are estimated from the logged winning_price",
         ]
         return {
             "before": before, "after": after, "delta": delta,
