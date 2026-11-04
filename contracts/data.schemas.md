@@ -1,11 +1,11 @@
-# Схемы данных v1 (шов B1)
+# Data schemas v1 (seam B1)
 
-**Владелец контракта:** S-1 (правки двухключевые, I4/I22). **Генератор данных:** зона B (`/data`). **Потребители:** зона A (tools), зона B (simulator, evals).
-Форматы: CSV для таблиц, JSON для вложенных структур. Валидация схем на входе — обязанность tools (зона A); генератор обязан производить данные, проходящие валидацию.
+**Contract owner:** S-1 (dual-key amendments, I4/I22). **Data generator:** zone B (`/data`). **Consumers:** zone A (tools), zone B (simulator, evals).
+Formats: CSV for tables, JSON for nested structures. Input schema validation is the tools' duty (zone A); the generator must produce data that passes validation.
 
 ## 1. delivery_daily.csv
 
-| Колонка | Тип | Пример |
+| Column | Type | Example |
 |---|---|---|
 | date | YYYY-MM-DD | 2026-10-20 |
 | impressions | int | 41200 |
@@ -15,7 +15,7 @@
 
 ## 2. delivery_hourly.csv
 
-Те же колонки + `hour` (0–23), `date`.
+Same columns + `hour` (0–23), `date`.
 
 ## 3. campaign_settings.json
 
@@ -34,27 +34,27 @@
 }
 ```
 
-## 4. bid_samples.csv (анонимизировано)
+## 4. bid_samples.csv (anonymized)
 
-| Колонка | Тип | Пример |
+| Column | Type | Example |
 |---|---|---|
 | ts | ISO-8601 | 2026-10-20T14:03:11Z |
-| site_app | string (псевдоним) | app_412 |
-| seller | string (псевдоним) | ssp_7 |
-| geo | ISO-код | US-NY |
+| site_app | string (pseudonym) | app_412 |
+| seller | string (pseudonym) | ssp_7 |
+| geo | ISO code | US-NY |
 | device | enum | mobile, desktop, ctv |
 | floor_price | float | 2.10 |
 | our_bid | float | 1.85 |
 | winning_price | float | 2.30 |
 | outcome | enum | win, loss_below_floor, loss_outbid, dropped_freq_cap, dropped_targeting, dropped_schedule, no_bid_budget |
 
-Для строк dropped_* и no_bid_budget: `winning_price` — оценка цены победителя (топ-конкурент), платёж не выполнялся; `our_bid` — ставка, которую кампания сделала бы/пыталась сделать. Эти строки — материал для симулятора (реплей смены dayparts/pacing/флуров).
-Изменение v0.1 (S-1, 2026-10-27): добавлены исходы `dropped_schedule`, `no_bid_budget`; ранее drop-строки несли константный флур и market=0.
+For dropped_* and no_bid_budget rows: `winning_price` is the estimated winner's price (top competitor); no payment happened; `our_bid` is the bid the campaign would have made. These rows are the simulator's replay material (daypart/pacing/floor changes).
+Change v0.1 (S-1, 2026-10-27): added the outcomes `dropped_schedule`, `no_bid_budget`; drop rows previously carried a constant floor and market=0.
 
-## 5. Бенчмарк: healthy control
+## 5. Benchmark: healthy control
 
-Отдельная кампания `control_healthy` с теми же схемами — эталон для compare_to_benchmark.
+A separate campaign `control_healthy` with the same schemas — the reference for compare_to_benchmark.
 
-##Failure modes в данных (генератор обязан уметь сеять все режимы PRD §8, режимы 1–8)
+## Failure modes in the data (the generator must be able to seed all PRD §8 modes, 1–8)
 
-Сид фиксирован и записан в `data/manifest.json` для воспроизводимости evals.
+The seed is fixed and recorded in `data/manifest.json` for eval reproducibility.

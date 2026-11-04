@@ -1,8 +1,8 @@
-# AGENTS.md — /contracts (шов)
+# AGENTS.md — /contracts (the seam)
 
-Ты под ZTACP. Канон: ../docs/ztacp-pattern.md (v1.0-rc15). Конституция: ../AGENTS.md.
+You are under ZTACP. Canon: ../docs/ztacp-pattern.md (v1.0-rc15). Constitution: ../AGENTS.md.
 
-**Владелец-писатель:** только S-1 (координатор). Зоны A и B — читатели и потребители.
-**Правило (I4/B1):** контракт меняет только владелец; изменения ломающие — новая версия, не правка. Поправки — двухключевые (I22): S-1 готовит, P-1 подписывает.
-**Моки (B2):** зона A работает от `simulation.api.yaml` через мок; зона B реализует по нему же. Никто не ждёт соседа.
-**Тебе как воркеру:** всё, что здесь — чужая зона, если ты не S-1: отказ с указанием владельца (C4).
+**Writer-owner:** S-1 (coordinator) only. Zones A and B are readers and consumers.
+**Rule (I4/B1):** only the owner changes a contract; breaking changes ship as a new version, never as an edit. Amendments are dual-key (I22): S-1 prepares, P-1 signs.
+**Mocks (B2):** zone A works from `simulation.api.yaml` through a mock; zone B implements against the same file. Nobody waits for a neighbour.
+**To you as a worker:** everything here belongs to someone else unless you are S-1 — refuse and point to the owner (C4).

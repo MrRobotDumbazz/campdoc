@@ -1,13 +1,13 @@
 contract: app-api
 version: 1-draft
 owner: S-1
-implementor: W-1 (бэкенд, FastAPI, /backend)
-caller: W-2 (фронтенд, /ui — mock-first, B2)
-changes: только S-1, двухключево (I22/I4); breaking → version+1
+implementor: W-1 (backend, FastAPI, /backend)
+caller: W-2 (frontend, /ui — mock-first, B2)
+changes: S-1 only, dual-key (I22/I4); breaking → version+1
 
 base: /api
-format: JSON; даты ISO-8601 UTC
-auth: нет (демо-локально); ключи модели — на стороне W-1 в env (I52)
+format: JSON; dates ISO-8601 UTC
+auth: none (local demo); model keys — on the W-1 side, env only (I52)
 
 endpoints:
 
@@ -24,8 +24,8 @@ endpoints:
       status: [running, done, error]
       question: string
       trace: [{ts: string, step: string, tool: string|null,
-               input_summary: string, output_summary: string}]   # live-панель трейса
-      findings:                                                  # при status=done
+               input_summary: string, output_summary: string}]   # live trace panel
+      findings:                                                  # when status=done
         - cause: string
           evidence: [{tool: string, ref: string, summary: string}]
           confidence: number          # 0..1
@@ -34,7 +34,7 @@ endpoints:
 
   POST /api/investigations/{id}/fixes/{idx}/simulate:
     request: {seed: integer}
-    response:   # форма = contracts/simulation.api.yaml output
+    response:   # shape = contracts/simulation.api.yaml output
       before: {metrics}
       after: {metrics}
       delta: {metrics}
@@ -44,7 +44,7 @@ endpoints:
       notes: [string]
 
   GET /api/investigations/{id}/report.md:
-    response: text/markdown            # клиент-готовый отчёт: findings, verified-фиксы, plain-English
+    response: text/markdown            # client-ready report: findings, verified fixes, plain-English
 
 metrics: {impressions: integer, spend: number, win_rate: number, ecpm: number}
 

@@ -3,40 +3,40 @@ version: 1-draft.1
 owner: S-1
 implementor: zone-B /simulator
 caller: W-1 /backend (tool: run_simulation)
-note: Контракт-шов (B1). Обе зоны работают от этой схемы и моков (B2) с Day 1. Изменения — только S-1, двухключево (I4/I22). Breaking-change → version+1.
+note: Seam contract (B1). Both zones work from this schema and mocks (B2) from Day 1. Changes — S-1 only, dual-key (I4/I22). Breaking change → version+1.
 
 function:
   name: run_simulation
   input:
-    campaign_id: string            # датасет из /data
-    seed: integer                   # детерминизм обязателен
-    changes:                        # предлагаемый фикс; null = не меняется
-      bid: number | null            # абсолютная ставка
-      bid_delta_pct: number | null  # либо дельта в %
+    campaign_id: string            # dataset from /data
+    seed: integer                   # determinism is mandatory
+    changes:                        # the proposed fix; null = unchanged
+      bid: number | null            # absolute bid
+      bid_delta_pct: number | null  # or a delta in %
       geo_widen: [string] | null
       audience_widen: [string] | null
-      frequency_cap: integer | null # напр. 5/день
-      dayparts: [string] | null     # напр. ["00-08","18-23"]
+      frequency_cap: integer | null # e.g. 5/day
+      dayparts: [string] | null     # e.g. ["00-08","18-23"]
       pacing: [even, asap] | null
       daily_budget_cap: number | null
       block_sellers: [string] | null
-    constraints:                    # нарушать нельзя
+    constraints:                    # must not be violated
       budget_cap_total: number | null
       max_ecpm: number | null
     target_metric: [impressions, spend, win_rate, ecpm]   # default impressions
     target_direction: [increase, decrease]                 # default increase; v1-draft.1:
-                                                            # семантика улучшения (напр. fm7: spend+decrease)
+                                                            # improvement semantics (e.g. fm7: spend+decrease)
   output:
     before: {metrics}
     after: {metrics}
     delta: {metrics}
-    verified: boolean               # true если Δ(target) >= threshold_pct в направлении target_direction и constraints не нарушены
+    verified: boolean               # true if Δ(target) >= threshold_pct in target_direction and no constraint is violated
     threshold_pct: number           # default 5.0
     violated_constraints: [string]
-    pacing:                         # v1-draft.1: диагностика пейсинга (фиксы fm5 верифицируются по ней)
+    pacing:                         # v1-draft.1: pacing diagnostics (fm5 fixes are verified by it)
       before: {active_days: int, active_hours: int, budget_utilization: number}
       after: {active_days: int, active_hours: int, budget_utilization: number}
-    notes: [string]                 # допущения модели; всегда включает limitation-note
+    notes: [string]                 # model assumptions; always includes the limitation note
   metrics:
     impressions: integer
     spend: number
@@ -44,7 +44,7 @@ function:
     ecpm: number
 
 execution:
-  determinism: одинаковые input+seed -> одинаковый output (unit test обязателен)
-  auction_model: first_price | second_price   # toggle из campaign settings
-  competitor_bids: оцениваются по залогированным winning prices датасета
-  limitation_note: "Симуляция на выборке bid-запросов; прогноз, не гарантия"
+  determinism: identical input+seed → identical output (a unit test is mandatory)
+  auction_model: first_price | second_price   # toggle from campaign settings
+  competitor_bids: estimated from the dataset's logged winning prices
+  limitation_note: "Simulation on a sample of bid requests; a forecast, not a guarantee"
