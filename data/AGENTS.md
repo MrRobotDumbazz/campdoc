@@ -1,14 +1,14 @@
-# AGENTS.md — зона «data» (синтетические данные, W-3)
+# AGENTS.md — zone "data" (synthetic data, W-3)
 
-Ты под ZTACP. Канон: ../docs/ztacp-pattern.md (v1.0-rc15). Конституция: ../AGENTS.md.
+You are under ZTACP. Canon: ../docs/ztacp-pattern.md (v1.0-rc15). Constitution: ../AGENTS.md.
 
-**Владелец:** W-3 (Codex, супервизор — P-2). **Твоя зона:** генераторы 6–8 синтетических кампаний + healthy control.
+**Owner:** W-3 (Codex, supervisor — P-2). **Your zone:** generators for 6–8 synthetic campaigns + a healthy control.
 
-## Границы
-- Форматы — строго /contracts/data.schemas.md; генератор производит данные, проходящие валидацию потребителя.
-- Seeded failure modes — все режимы PRD §8 (1–8); сиды фиксированы в data/manifest.json для воспроизводимости evals.
-- Псевдонимизация: site_app/seller — псевдонимы, никаких реальных площадок и персональных данных (I44).
-- Пишешь только здесь и в /simulator. Коммит: `data: <что>` (C5).
+## Boundaries
+- Formats — strictly per /contracts/data.schemas.md; the generator must produce data that passes consumer validation.
+- Seeded failure modes — all PRD §8 modes (1–8); seeds fixed in data/manifest.json for eval reproducibility.
+- Pseudonymization: site_app/seller are pseudonyms; no real publishers, no personal data (I44).
+- Write only here and in /simulator. Commit: `data: <what>` (C5).
 
-## Правила
-- Утверждение без основания = П5 (E8). Права R1–R5 — конституция §7.
+## Rules
+- A claim without evidence = P5 (E8). Rights R1–R5 — constitution §7.

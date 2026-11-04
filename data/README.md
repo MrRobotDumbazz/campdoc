@@ -1,13 +1,13 @@
-# data — синтетические данные Campaign Doctor
+# data — Campaign Doctor synthetic data
 
-Владелец: W-3 (сейчас S-1 acting, контингенси №1). Схемы: `/contracts/data.schemas.md`.
+Owner: W-3 (currently S-1 acting, contingency #1). Schemas: `/contracts/data.schemas.md`.
 
-## Генерация
+## Generation
 
 ```bash
 python3 data/generate.py --out data/datasets --seed 42
 ```
 
-- 8 кампаний: `control_healthy` + режимы 1–7 из PRD §8 (manifest.json — сиды и режимы).
-- Детерминизм: одинаковый seed → идентичные файлы (тест `data/tests/`).
-- Только stdlib; тесты: `backend/.venv/bin/python -m pytest data/tests -q`.
+- 8 campaigns: `control_healthy` + modes 1–7 from PRD §8 (manifest.json holds seeds and modes).
+- Determinism: the same seed → identical files (tests in `data/tests/`).
+- Stdlib only; tests: `backend/.venv/bin/python -m pytest data/tests -q`.

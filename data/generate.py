@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Campaign Doctor — генератор синтетических данных v0.1 (зона ML, S-1 acting).
+"""Campaign Doctor — synthetic data generator v0.1 (ML zone, S-1 acting).
 
-Схемы: /contracts/data.schemas.md. Failure modes: PRD §8 (0=healthy control, 1..7).
-Детерминизм: одинаковый seed -> идентичные файлы (покрыто тестом).
-Запуск: python3 data/generate.py [--out data/datasets] [--seed 42]
+Schemas: /contracts/data.schemas.md. Failure modes: PRD §8 (0=healthy control, 1..7).
+Determinism: the same seed -> identical files (covered by a test).
+Run: python3 data/generate.py [--out data/datasets] [--seed 42]
 
-v0.1: в bid_samples логируются ВСЕ запросы (win/loss/drop/no_bid) — материал
-для симулятора: смена dayparts/pacing/флуров replay-ится по тем же строкам.
+v0.1: bid_samples logs EVERY request (win/loss/drop/no_bid) — the material the
+simulator replays: daypart/pacing/floor changes replay over the same rows.
 """
 from __future__ import annotations
 
@@ -26,14 +26,14 @@ GEOS = ["US-NY", "US-CA", "US-TX", "US-FL", "US-IL"]
 DEVICES = ["mobile", "desktop", "ctv"]
 SELLERS = [f"ssp_{i}" for i in range(1, 9)]
 SITES = [f"app_{i * 111}" for i in range(1, 13)]
-BASE_RPH = 800          # запросов в час у healthy
-COMP_MEDIAN = 3.9       # рынок: топ-конкурент
+BASE_RPH = 800          # requests per hour for healthy
+COMP_MEDIAN = 3.9       # market: top competitor
 COMP_SIGMA = 0.5
 FLOOR_MEDIAN = 1.2
 FLOOR_SIGMA = 0.4
 HIGH_FLOOR_MEDIAN = 6.5
-SAMPLE_KEEP = 0.02      # доля запросов, попадающих в bid_samples
-NICHE_TRAFFIC = 0.6     # доля трафика «подозрительного» продавца (FM7)
+SAMPLE_KEEP = 0.02      # share of requests kept in bid_samples
+NICHE_TRAFFIC = 0.6     # traffic share of the "suspicious" seller (FM7)
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Spec:
     pacing: str = "even"           # even | asap
     freq_cap_per_day: int | None = None
     geo: tuple = tuple(GEOS)
-    dayparts: tuple | None = None  # ("09-17",) = часы 9..16
+    dayparts: tuple | None = None  # ("09-17",) = hours 9..16
     auction_model: str = "second_price"
     base_mult: float = 1.0
     comp_median: float = COMP_MEDIAN
@@ -94,7 +94,7 @@ def simulate(spec: Spec, seed: int) -> dict:
     hours_on = _hours(spec)
     start = date.fromisoformat(FLIGHT_START)
 
-    # план пейсинга считается на все 24ч — даже если daypart уже (модель бага FM4)
+    # the pacing plan assumes all 24h — even when a daypart is set (models the FM4 bug)
     hourly_cap = None
     if spec.pacing == "even":
         hourly_cap = spec.budget_total / (FLIGHT_DAYS * 24) * 1.1
@@ -110,7 +110,7 @@ def simulate(spec: Spec, seed: int) -> dict:
     last_day = 0
 
     def draw_market(geo_ok, seller):
-        """Цены запроса: флур и топ-конкурент (для любого исхода — нужен реплею)."""
+        """Request prices: floor and top competitor (for any outcome — the replay needs it)."""
         if spec.high_floor_share and rng.random() < spec.high_floor_share:
             floor = _lognormal(rng, HIGH_FLOOR_MEDIAN, FLOOR_SIGMA)
         else:
