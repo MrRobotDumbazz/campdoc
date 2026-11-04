@@ -1,57 +1,57 @@
-# Backend (зона W-1)
+# Backend (zone W-1)
 
-FastAPI-сервер по `/contracts/app.api.yaml`, диагностический агент с tool calling
-(Muse Spark), инструменты данных с валидацией `/contracts/data.schemas.md`,
-верификатор groundedness, eval harness (D7).
+FastAPI server per `/contracts/app.api.yaml`, diagnostic agent with tool calling
+(Muse Spark), data tools with `/contracts/data.schemas.md` validation,
+groundedness verifier, eval harness (D7).
 
-## Запуск
+## Run
 
 ```bash
-# из корня репо
+# from the repo root
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r requirements.txt
-backend/.venv/bin/python -m pytest                          # тесты
-backend/.venv/bin/uvicorn backend.api.main:app --reload     # сервер :8000
+backend/.venv/bin/python -m pytest                          # tests
+backend/.venv/bin/uvicorn backend.api.main:app --reload     # server :8000
 ```
 
-## Структура
+## Structure
 
 ```
 backend/
-  api/      FastAPI: эндпоинты, pydantic-схемы, store расследований (трейс JSONL)
-  agent/    runner (LLM/эвристики), llm-клиент, эвристики PRD §8,
-            findings + evidence-rule, отчёт .md
-  tools/    loader (валидация схем + мок-датасеты), data_tools, sim_client (мок/HTTP)
+  api/      FastAPI: endpoints, pydantic schemas, investigation store (JSONL trace)
+  agent/    runner (LLM/heuristics), llm client, PRD §8 heuristics,
+            findings + evidence rule, .md report
+  tools/    loader (schema validation + mock datasets), data_tools, sim_client (mock/HTTP)
   evals/    eval harness (D7)
-  scripts/  check_tool_calling.py — Day-1 проверка формата tool-calling
-  tests/    контрактные тесты API, LLM-режим (stub-сервер: tool-calling/json-fallback/
-            отказ → эвристики), data-инструменты, evidence-rule, схемы, персистентность трейса
+  scripts/  check_tool_calling.py — Day-1 tool-calling format check
+  tests/    API contract tests, LLM mode (stub server: tool-calling/json-fallback/
+            refusal → heuristics), data tools, evidence rule, schemas, trace persistence
 ```
 
-## Режимы
+## Modes
 
-| Что | Включение | Поведение |
+| What | Enabled by | Behavior |
 |---|---|---|
-| Агент | `MUSE_SPARK_BASE_URL` + `MUSE_SPARK_API_KEY` | tool-calling → JSON-fallback → эвристики |
-| Симулятор | `SIMULATOR_BASE_URL` | HTTP-клиент по simulation.api.yaml; иначе детерминированный мок |
-| Данные | `/data` не пуст | загрузка + валидация схем; иначе встроенные мок-кампании (режимы 1–8) |
+| Agent | `MUSE_SPARK_BASE_URL` + `MUSE_SPARK_API_KEY` | tool-calling → JSON-fallback → heuristics |
+| Simulator | `SIMULATOR_BASE_URL` | HTTP client per simulation.api.yaml; otherwise deterministic mock |
+| Data | `/data` non-empty | loading + schema validation; otherwise built-in mock campaigns (modes 1–8) |
 
-## Инварианты (проверяются тестами)
+## Invariants (verified by tests)
 
-- Каждый finding имеет evidence с ref на реально выполненный tool-вызов
-  (`backend/agent/findings.py:enforce_evidence`) — «нет evidence — нет диагноза» в коде.
-- Verifier двухслойный (`backend/agent/verifier.py`): rule-based ref-check всегда;
-  при доступном Muse Spark — семантическая проверка claim↔tool-выводы (отказ API не
-  удаляет обоснованные claims). Groundedness = claims_grounded/claims_total.
-- Симуляция детерминирована: одинаковые input+seed → одинаковый output;
-  «verified» = Δ(target) ≥ 5% без нарушения constraints.
-- Healthy control не даёт ложных диагнозов (FP=0).
-- Ошибки схем данных — понятным текстом с именем колонки/строки.
+- Every finding carries evidence with a ref to an actually executed tool call
+  (`backend/agent/findings.py:enforce_evidence`) — "no evidence, no diagnosis" enforced in code.
+- Two-layer verifier (`backend/agent/verifier.py`): rule-based ref-check always;
+  when Muse Spark is available — semantic check of claims ↔ tool outputs (an API failure
+  does not drop justified claims). Groundedness = claims_grounded/claims_total.
+- Simulation is deterministic: identical input+seed → identical output;
+  "verified" = Δ(target) ≥ 5% without violating constraints.
+- Healthy control yields no false diagnoses (FP=0).
+- Data schema errors — in plain language with the column/row name.
 
-## Замечания по контрактам
+## Contract notes
 
-- `GET /api/health` — аддитивное расширение для dev-цикла фронта (не ломает потребителя).
-- `fixes/{idx}/simulate`: idx — индекс в плоском списке фиксов всех findings
-  (finding → proposed_changes по порядку).
-- Внутренние structured changes (`simulation.api.yaml` input) хранятся в сторе и
-  не расширяют публичный ответ `GET /investigations/{id}`.
+- `GET /api/health` — additive extension for the frontend dev loop (does not break the consumer).
+- `fixes/{idx}/simulate`: idx — index into the flat list of fixes across all findings
+  (finding → proposed_changes, in order).
+- Internal structured changes (`simulation.api.yaml` input) are kept in the store and
+  do not extend the public `GET /investigations/{id}` response.
