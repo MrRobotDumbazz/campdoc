@@ -80,11 +80,11 @@ export default function App() {
       </header>
       <div className="app-body">
         <aside className="sidebar">
-          {datasetsLoading && <div className="sidebar-loading"><span className="spinner" /> Загрузка датасетов…</div>}
+          {datasetsLoading && <div className="sidebar-loading"><span className="spinner" /> Loading datasets…</div>}
           {!datasetsLoading && (
             <DatasetPicker datasets={datasets} selectedId={selectedId} onSelect={setSelectedId} />
           )}
-          {loadError && <div className="error-box">Не удалось загрузить датасеты: {loadError}</div>}
+          {loadError && <div className="error-box">Failed to load datasets: {loadError}</div>}
         </aside>
         <main className="chat-area">
           {selected ? (
@@ -102,7 +102,7 @@ export default function App() {
               onSimulationChange={handleSimulationChange}
             />
           ) : (
-            <div className="chat-empty">Выберите датасет слева</div>
+            <div className="chat-empty">Select a dataset on the left</div>
           )}
         </main>
         <TracePanel

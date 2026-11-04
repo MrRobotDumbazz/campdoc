@@ -24,20 +24,20 @@ const DATASETS: Dataset[] = [
 const FINDINGS: Record<string, Finding[]> = {
   camp_q4_retail: [
     {
-      cause: 'Частотная перегрузка: frequency cap отсутствует, до 12+ показов/день на пользователя при норме 5',
+      cause: 'Frequency overload: no frequency cap in place, up to 12+ impressions/day per user against a norm of 5',
       evidence: [
-        { tool: 'query_delivery', ref: 'delivery_daily.csv#rows 2026-10-18..24', summary: 'Средняя частота 11.8/день, у 60% пользователей 10+ показов' },
-        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#sampled 5k', summary: 'Ставка выигрывает аукцион, но повторные показы дешевеют — прироста уникальных юзеров нет' },
-        { tool: 'compare_to_benchmark', ref: 'benchmark q4_retail_sector', summary: 'Частота выше секторной нормы в 2.4x, CTR ниже нормы на 38%' },
+        { tool: 'query_delivery', ref: 'delivery_daily.csv#rows 2026-10-18..24', summary: 'Average frequency 11.8/day, 60% of users get 10+ impressions' },
+        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#sampled 5k', summary: 'The bid wins auctions, but repeat impressions get cheaper — no growth in unique users' },
+        { tool: 'compare_to_benchmark', ref: 'benchmark q4_retail_sector', summary: 'Frequency is 2.4x above the sector norm, CTR is 38% below norm' },
       ],
       confidence: 0.86,
       proposed_changes: ['frequency_cap: 5', 'bid_delta_pct: -10'],
     },
     {
-      cause: 'Суженная гео-настройка: 92% бюджета в 2 регионах из 18 доступных',
+      cause: 'Narrow geo targeting: 92% of budget in 2 of 18 available regions',
       evidence: [
-        { tool: 'get_campaign_settings', ref: 'settings.json#geo', summary: 'geo: ["US-CA","US-NY"], остальные 16 регионов выключены' },
-        { tool: 'query_delivery', ref: 'delivery_daily.csv#geo_breakdown', summary: 'Аукционов из других регионов достаточно, охват недобирается' },
+        { tool: 'get_campaign_settings', ref: 'settings.json#geo', summary: 'geo: ["US-CA","US-NY"], the other 16 regions are disabled' },
+        { tool: 'query_delivery', ref: 'delivery_daily.csv#geo_breakdown', summary: 'Other regions have plenty of auction inventory; reach is being left on the table' },
       ],
       confidence: 0.71,
       proposed_changes: ['geo_widen: ["US-TX","US-FL","US-IL"]'],
@@ -45,10 +45,10 @@ const FINDINGS: Record<string, Finding[]> = {
   ],
   camp_saas_ua: [
     {
-      cause: 'Ставка ниже медианы конкурентов: win rate 14% против 41% у бенчмарка',
+      cause: 'Bid below competitor median: win rate 14% vs 41% at benchmark',
       evidence: [
-        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#sampled 8k', summary: 'Медиана выигрышных ставок конкурентов $2.85, наша ставка $2.10' },
-        { tool: 'compare_to_benchmark', ref: 'benchmark b2b_saas', summary: 'Win rate ниже секторного на 27 п.п., spend в норме' },
+        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#sampled 8k', summary: 'Competitor winning-bid median is $2.85, our bid is $2.10' },
+        { tool: 'compare_to_benchmark', ref: 'benchmark b2b_saas', summary: 'Win rate is 27 pp below sector, spend is within norm' },
       ],
       confidence: 0.91,
       proposed_changes: ['bid: 2.85'],
@@ -56,11 +56,11 @@ const FINDINGS: Record<string, Finding[]> = {
   ],
   camp_app_inst: [
     {
-      cause: 'Дневной бюджет исчерпывается к 11:00 — потеря вечернего трафика с лучшей конверсией',
+      cause: 'Daily budget exhausts by 11:00 — losing evening traffic with the best conversion',
       evidence: [
-        { tool: 'query_delivery', ref: 'delivery_hourly.csv#2026-10-20..26', summary: 'Spend достигает daily cap к 11:00, показы после 12:00 — нули' },
-        { tool: 'get_campaign_settings', ref: 'settings.json#pacing', summary: 'pacing: asap при дневном капе $500' },
-        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#daypart_analysis', summary: 'Вечерние слоты 18-23 имеют конверсию в 1.7x выше средней' },
+        { tool: 'query_delivery', ref: 'delivery_hourly.csv#2026-10-20..26', summary: 'Spend hits the daily cap by 11:00, impressions after 12:00 are zero' },
+        { tool: 'get_campaign_settings', ref: 'settings.json#pacing', summary: 'pacing: asap with a $500 daily cap' },
+        { tool: 'query_bid_samples', ref: 'bid_samples.jsonl#daypart_analysis', summary: 'Evening slots 18-23 convert 1.7x above average' },
       ],
       confidence: 0.83,
       proposed_changes: ['pacing: even', 'dayparts: ["18-23"]'],
@@ -70,9 +70,9 @@ const FINDINGS: Record<string, Finding[]> = {
 
 const GENERIC_FINDINGS: Finding[] = [
   {
-    cause: 'Кампания здорова: метрики в пределах секторной нормы',
+    cause: 'Campaign is healthy: metrics within sector norms',
     evidence: [
-      { tool: 'compare_to_benchmark', ref: 'benchmark sector_avg', summary: 'Все ключевые метрики в пределах ±5% от нормы' },
+      { tool: 'compare_to_benchmark', ref: 'benchmark sector_avg', summary: 'All key metrics are within ±5% of norm' },
     ],
     confidence: 0.94,
     proposed_changes: [],
@@ -89,12 +89,12 @@ interface TraceTemplateEntry {
 
 function buildTraceTemplate(question: string, findingsCount: number): TraceTemplateEntry[] {
   return [
-    { step: 'plan', tool: null, inputSummary: question, outputSummary: 'План: delivery → bid samples → settings → benchmark', atMs: 0 },
-    { step: 'query_delivery', tool: 'query_delivery', inputSummary: 'daily rows, last 7 days', outputSummary: '213k строк, аномалия частоты в 2 сегментах', atMs: 1100 },
-    { step: 'query_bid_samples', tool: 'query_bid_samples', inputSummary: 'sampled bid log', outputSummary: '5 214 записей, win rate 14%', atMs: 2400 },
-    { step: 'get_campaign_settings', tool: 'get_campaign_settings', inputSummary: 'campaign settings', outputSummary: 'geo: 2 региона, pacing: asap', atMs: 3500 },
-    { step: 'compare_to_benchmark', tool: 'compare_to_benchmark', inputSummary: 'sector benchmark', outputSummary: '3 метрики вне нормы', atMs: 4700 },
-    { step: 'analyze', tool: null, inputSummary: `${findingsCount} candidate causes`, outputSummary: `${findingsCount} finding(s) с evidence`, atMs: 5900 },
+    { step: 'plan', tool: null, inputSummary: question, outputSummary: 'Plan: delivery → bid samples → settings → benchmark', atMs: 0 },
+    { step: 'query_delivery', tool: 'query_delivery', inputSummary: 'daily rows, last 7 days', outputSummary: '213k rows, frequency anomaly in 2 segments', atMs: 1100 },
+    { step: 'query_bid_samples', tool: 'query_bid_samples', inputSummary: 'sampled bid log', outputSummary: '5,214 records, win rate 14%', atMs: 2400 },
+    { step: 'get_campaign_settings', tool: 'get_campaign_settings', inputSummary: 'campaign settings', outputSummary: 'geo: 2 regions, pacing: asap', atMs: 3500 },
+    { step: 'compare_to_benchmark', tool: 'compare_to_benchmark', inputSummary: 'sector benchmark', outputSummary: '3 metrics out of norm', atMs: 4700 },
+    { step: 'analyze', tool: null, inputSummary: `${findingsCount} candidate causes`, outputSummary: `${findingsCount} finding(s) with evidence`, atMs: 5900 },
     { step: 'verify', tool: null, inputSummary: 'claims from findings', outputSummary: 'groundedness check passed', atMs: 7100 },
   ]
 }
@@ -203,7 +203,7 @@ export class MockClient implements ApiClient {
       verified: deltaPct >= thresholdPct,
       threshold_pct: thresholdPct,
       violated_constraints: [],
-      notes: ['Симуляция на выборке bid-запросов; прогноз, не гарантия', `seed=${seed}, детерминированный реплей`],
+      notes: ['Simulation on a sample of bid requests; a forecast, not a guarantee', `seed=${seed}, deterministic replay`],
     }
   }
 
@@ -214,9 +214,9 @@ export class MockClient implements ApiClient {
     }
     const claimsTotal = rec.findings.reduce((a, f) => a + f.evidence.length, 0)
     const lines: string[] = [
-      '# Campaign Doctor — отчёт по расследованию',
+      '# Campaign Doctor — investigation report',
       '',
-      `**Вопрос:** ${rec.question}`,
+      `**Question:** ${rec.question}`,
       '',
       '## Findings',
       '',

@@ -23,9 +23,9 @@ interface Props {
 }
 
 const SUGGESTIONS = [
-  'Почему упали показы за последнюю неделю?',
-  'Что сломалось в этой кампании?',
-  'Сравни с бенчмарком сектора',
+  'Why did impressions drop over the last week?',
+  'What is broken in this campaign?',
+  'Compare against the sector benchmark',
 ]
 
 export default function ChatPanel({
@@ -142,7 +142,7 @@ export default function ChatPanel({
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-hint">
-            Задайте вопрос по кампании — агент проведёт расследование и покажет находки с evidence.
+            Ask a question about the campaign — the agent will run an investigation and show findings with evidence.
           </div>
         )}
         {messages.map((m, i) =>
@@ -183,12 +183,12 @@ export default function ChatPanel({
           <input
             className="chat-input"
             value={input}
-            placeholder="Спросите агента…"
+            placeholder="Ask the agent…"
             onChange={(e) => setInput(e.target.value)}
             disabled={asking}
           />
           <button className="send-btn" type="submit" disabled={asking || !input.trim()}>
-            {asking ? '…' : 'Отправить'}
+            {asking ? '…' : 'Send'}
           </button>
         </form>
       </div>
@@ -229,7 +229,7 @@ function InvestigationBubble({
   if (error) {
     return (
       <div className="msg bot">
-        <div className="msg-bubble error-box tight">Ошибка расследования: {error}</div>
+        <div className="msg-bubble error-box tight">Investigation error: {error}</div>
       </div>
     )
   }
@@ -241,7 +241,7 @@ function InvestigationBubble({
       <div className="msg bot">
         <div className="msg-bubble running">
           <span className="spinner" />
-          Агент расследует… {last ? `${last.step}: ${last.output_summary}` : 'старт'}
+          Investigating… {last ? `${last.step}: ${last.output_summary}` : 'starting'}
         </div>
       </div>
     )
@@ -250,7 +250,7 @@ function InvestigationBubble({
   if (investigation.status === 'error') {
     return (
       <div className="msg bot">
-        <div className="msg-bubble error-box tight">Расследование завершилось с ошибкой</div>
+        <div className="msg-bubble error-box tight">Investigation finished with an error</div>
       </div>
     )
   }
@@ -260,7 +260,7 @@ function InvestigationBubble({
     <div className="msg bot">
       <div className="msg-bubble done">
         <details className="trace-details">
-          <summary>Trace ({investigation.trace.length} шагов)</summary>
+          <summary>Trace ({investigation.trace.length} steps)</summary>
           <ol className="trace-list">
             {investigation.trace.map((t, i) => (
               <li key={i}>
@@ -271,7 +271,7 @@ function InvestigationBubble({
             ))}
           </ol>
         </details>
-        {investigation.findings.length === 0 && <div className="no-findings">Находок нет.</div>}
+        {investigation.findings.length === 0 && <div className="no-findings">No findings.</div>}
         {investigation.findings.map((f, idx) => (
           <div key={idx} className="finding">
             <div className="finding-cause">
@@ -308,7 +308,7 @@ function InvestigationBubble({
                   />
                 ) : (
                   <button className="sim-btn" onClick={() => onRunSim(investigationId, idx)}>
-                    ▶ Симулировать фикс
+                    ▶ Simulate fix
                   </button>
                 )}
               </div>
@@ -321,7 +321,7 @@ function InvestigationBubble({
             {v.removed.length > 0 && `, removed: ${v.removed.length}`}
           </div>
           <button className="sim-btn small" onClick={handleDownload} disabled={reportBusy}>
-            ⬇ {reportBusy ? 'Готовим…' : 'Отчёт .md'}
+            ⬇ {reportBusy ? 'Preparing…' : 'Report .md'}
           </button>
         </div>
         {reportError && <div className="error-box tight">{reportError}</div>}

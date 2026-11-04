@@ -7,7 +7,7 @@ interface Props {
 }
 
 function fmtTime(ts: string): string {
-  return new Date(ts).toLocaleTimeString('ru-RU', { hour12: false })
+  return new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 }
 
 export default function TracePanel({ investigation, error }: Props) {
@@ -30,7 +30,7 @@ export default function TracePanel({ investigation, error }: Props) {
       {error && <div className="error-box tight">{error}</div>}
       {!investigation && (
         <div className="trace-empty">
-          Запустите расследование — шаги агента появятся здесь в реальном времени.
+          Start an investigation — agent steps will appear here in real time.
         </div>
       )}
       {investigation && (
@@ -52,7 +52,7 @@ export default function TracePanel({ investigation, error }: Props) {
           {investigation.status === 'running' && (
             <div className="trace-row pending">
               <span className="spinner" />
-              выполняется…
+              running…
             </div>
           )}
         </div>

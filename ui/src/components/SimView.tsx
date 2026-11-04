@@ -13,7 +13,7 @@ interface Props {
 }
 
 const METRICS: { key: keyof Metrics; label: string; fmt: (v: number) => string }[] = [
-  { key: 'impressions', label: 'Impressions', fmt: (v) => v.toLocaleString('ru-RU') },
+  { key: 'impressions', label: 'Impressions', fmt: (v) => v.toLocaleString('en-US') },
   { key: 'spend', label: 'Spend', fmt: (v) => `$${v.toFixed(2)}` },
   { key: 'win_rate', label: 'Win rate', fmt: (v) => `${(v * 100).toFixed(1)}%` },
   { key: 'ecpm', label: 'eCPM', fmt: (v) => `$${v.toFixed(2)}` },
@@ -27,7 +27,7 @@ export default function SimView({ state, onRerun }: Props) {
   if (state.status === 'loading') {
     return (
       <div className="sim-box loading">
-        <span className="spinner" /> Симуляция (seed {state.seed})…
+        <span className="spinner" /> Simulating (seed {state.seed})…
       </div>
     )
   }
@@ -35,9 +35,9 @@ export default function SimView({ state, onRerun }: Props) {
   if (state.status === 'error' || !state.result) {
     return (
       <div className="sim-box">
-        <div className="error-box tight">Ошибка симуляции: {state.error}</div>
+        <div className="error-box tight">Simulation error: {state.error}</div>
         <button className="sim-btn" onClick={onRerun}>
-          Повторить
+          Retry
         </button>
       </div>
     )
@@ -51,14 +51,14 @@ export default function SimView({ state, onRerun }: Props) {
           {r.verified ? 'verified' : 'unverified'}
         </span>
         <span className="sim-threshold">
-          порог Δ≥{r.threshold_pct}%
+          threshold Δ≥{r.threshold_pct}%
         </span>
         <button className="sim-btn small" onClick={onRerun}>
-          новый seed
+          new seed
         </button>
       </div>
       <div className="sim-table">
-        <div className="sim-th">Метрика</div>
+        <div className="sim-th">Metric</div>
         <div className="sim-th">Before</div>
         <div className="sim-th">After</div>
         <div className="sim-th">Δ</div>
@@ -76,7 +76,7 @@ export default function SimView({ state, onRerun }: Props) {
       {r.violated_constraints.length > 0 && (
         <ul className="sim-violations">
           {r.violated_constraints.map((c) => (
-            <li key={c}>constraint нарушен: {c}</li>
+            <li key={c}>constraint violated: {c}</li>
           ))}
         </ul>
       )}

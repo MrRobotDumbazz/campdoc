@@ -9,7 +9,7 @@ interface Props {
 export default function DatasetPicker({ datasets, selectedId, onSelect }: Props) {
   return (
     <div className="dataset-picker">
-      <div className="sidebar-title">Датасеты</div>
+      <div className="sidebar-title">Datasets</div>
       <ul className="dataset-list">
         {datasets.map((d) => (
           <li key={d.campaign_id}>
