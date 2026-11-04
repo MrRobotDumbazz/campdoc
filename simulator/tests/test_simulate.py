@@ -32,7 +32,7 @@ def test_output_schema():
         assert k in out, k
     for part in ("before", "after"):
         assert set(out[part]) == {"impressions", "spend", "win_rate", "ecpm"}
-    assert any("не гарантия" in n for n in out["notes"])
+    assert any("not a guarantee" in n for n in out["notes"])
 
 
 def test_determinism():
@@ -89,14 +89,14 @@ def test_fm5_even_pacing_spreads():
     out = run("fm5_asap", changes={"pacing": "even", "daily_budget_cap": 20000 / 14})
     days = {p: int([n for n in out["notes"] if n.startswith(f"pacing {p}")][0]
                    .split("days=")[1].split(",")[0]) for p in ("before", "after")}
-    assert days["before"] <= 4          # выгорание на старте
-    assert days["after"] >= 12          # размазано на флайт
+    assert days["before"] <= 4          # early burnout
+    assert days["after"] >= 12          # spread across the flight
     assert out["after"]["spend"] <= 20000 * 1.001
 
 
 def test_fm6_bid_above_floors():
-    # честная экономика: над флорами платим дороже -> impressions не растут,
-    # растёт доставка бюджета (spend) — target для FM6 именно spend
+    # honest economics: above the floors we pay more -> impressions do not grow,
+    # budget delivery (spend) does — spend is exactly the right target for FM6
     out = run("fm6_floor", changes={"bid": 7.0}, target_metric="spend")
     assert out["after"]["spend"] > out["before"]["spend"] * 1.5
     assert out["verified"] is True
@@ -106,7 +106,7 @@ def test_fm7_block_seller_removes_concentration():
     out = run("fm7_supply", changes={"block_sellers": ["ssp_7"]})
     note = [n for n in out["notes"] if "top-seller" in n][0]
     after_share = note.split("/")[-1]
-    assert float(after_share) < 0.35  # при 6 равных продавцах ~1/6; запас на шум выборки
+    assert float(after_share) < 0.35  # ~1/6 across 6 equal sellers; slack for sample noise
 
 
 def test_constraint_max_ecpm_blocks_verification():
@@ -124,12 +124,12 @@ def test_constraint_budget_cap_respected():
 
 def test_healthy_no_fake_improvement_needed():
     out = run("control_healthy", changes={"bid": 2.61})
-    # микроскопенная правка не должна давать verified
+    # a microscopic change must not yield verified
     assert out["verified"] is False
 
 
 def test_fm7_block_with_decrease_direction():
-    # v1-draft.1: блокировка мусорного продавца — spend должен УПАСТЬ (direction=decrease)
+    # v1-draft.1: blocking the junk seller — spend must DROP (direction=decrease)
     out = run("fm7_supply", changes={"block_sellers": ["ssp_7"]},
               target_metric="spend", target_direction="decrease")
     assert out["after"]["spend"] < out["before"]["spend"]

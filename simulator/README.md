@@ -1,30 +1,32 @@
-# simulator — аукционный симулятор Campaign Doctor
+# simulator — Campaign Doctor auction simulator
 
-Владелец: W-3 (сейчас S-1 acting, контингенси №1). Контракт: `/contracts/simulation.api.yaml`.
+Owner: W-3 (currently S-1 acting, contingency #1). Contract: `/contracts/simulation.api.yaml`.
 
-## Запуск
+## Run
 
 ```bash
-python3 simulator/run_demo.py                                # таблица фиксов по всем режимам
-backend/.venv/bin/python -m pytest simulator/tests -q        # тесты
+python3 simulator/run_demo.py                                # fix table for every mode
+python3 simulator/server.py --port 8100                      # HTTP contract endpoint
+backend/.venv/bin/python -m pytest simulator/tests -q        # tests
 ```
 
-API: `from simulator.simulate import run_simulation` (внутри backend — через клиент по контракту).
+API: `from simulator.simulate import run_simulation` (backend consumes it over the HTTP contract).
 
-## Метод (v0)
+## Method (v0)
 
-Детерминированный реплей `bid_samples.csv` под изменёнными настройками:
+Deterministic replay of `bid_samples.csv` under modified settings:
 
-1. Фильтры: block_sellers → dayparts → targeting/geo_widen → freq-cap recovery.
-2. Пейсинг: even = часовые лимиты по бюджету/флайту; asap = глобальный бюджет; daily cap.
-3. Аукцион: `bid < floor` → loss_below_floor; `bid <= winning_price` → loss_outbid;
-   иначе win, pay = bid (first price) или max(floor, market) (second price).
-4. Метрики масштабируются от выборки к кампании (factor = фактические bids / bids в выборке).
+1. Filters: block_sellers → dayparts → targeting/geo_widen → freq-cap recovery.
+2. Pacing: even = hourly budget allowances across the flight; asap = global budget; daily cap.
+3. Auction: `bid < floor` → loss_below_floor; `bid <= winning_price` → loss_outbid;
+   otherwise a win, pay = bid (first price) or max(floor, market) (second price).
+4. Metrics are scaled from the sample to campaign level (factor = actual bids / bids in sample).
 
-## Допущения (честно)
+## Assumptions (honest)
 
-- `audience_widen` не моделируется (нет измерения в данных) — помечается в notes.
+- `audience_widen` is not modelled (no audience dimension in the data) — flagged in notes.
 - Freq-recovery: drop(C) = 0.93·C_old/C, C=None → 0.
-- `verified` в v0 = рост target_metric ≥ threshold без нарушения constraints;
-  для фиксов «сгладить пейсинг» (fm5) эффект виден в notes (active days/hours), не в Δimpressions.
-- Калибровка: реплей без изменений воспроизводит фактические delivery-агрегаты в ±15% (тесты).
+- `verified` in v0 = target_metric moves ≥ threshold in `target_direction` without violating constraints;
+  pacing fixes (fm5) show their effect in the `pacing` block (active days/hours), not in Δimpressions.
+- Calibration: an unchanged replay reproduces actual delivery aggregates within ±15% (tests;
+  in practice ~±5%).

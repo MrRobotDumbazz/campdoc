@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Campaign Doctor — аукционный симулятор v0 (зона ML, S-1 acting).
+"""Campaign Doctor — auction simulator v0 (ML zone, S-1 acting).
 
-Реализация контракта /contracts/simulation.api.yaml v1-draft.
-Метод: детерминированный реплей bid_samples.csv под изменёнными настройками
-(first/second price из campaign settings), со слоями пейсинга и ограничений.
-Допущения и границы — simulator/README.md; limitation-note в каждом результате.
+Implements /contracts/simulation.api.yaml v1-draft.
+Method: deterministic replay of bid_samples.csv under modified settings
+(first/second price from campaign settings) with pacing and constraint layers.
+Assumptions and limits — simulator/README.md; a limitation note ships with every result.
 """
 from __future__ import annotations
 
@@ -16,10 +16,10 @@ from datetime import date
 from pathlib import Path
 
 DATA_ROOT = Path(__file__).resolve().parents[1] / "data" / "datasets"
-LIMITATION_NOTE = "Симуляция на выборке bid-запросов; прогноз, не гарантия"
-NOT_MODELLED = ["audience_widen: не моделируется в v0 (в данных нет измерения audience)"]
-FREQ_DROP_BASE = 0.93  # модель восстановления охвата: drop(C) = FREQ_DROP_BASE * C_old / C
-HOURLY_SLACK = 1.1     # слак плана пейсинга — тот же констант, что в data/generate.py
+LIMITATION_NOTE = "Simulation on a sample of bid requests; a forecast, not a guarantee"
+NOT_MODELLED = ["audience_widen: not modelled in v0 (no audience dimension in the data)"]
+FREQ_DROP_BASE = 0.93  # reach-recovery model: drop(C) = FREQ_DROP_BASE * C_old / C
+HOURLY_SLACK = 1.1     # pacing-plan slack — the same constant as in data/generate.py
 
 
 def _hours_from(dayparts) -> set[int]:
@@ -79,8 +79,8 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
     cap_new = changes["frequency_cap"] if "frequency_cap" in changes else cap_old
     drop_new = _drop_rate(cap_new, cap_old)
     drop_old = _drop_rate(cap_old, cap_old) if cap_old is not None else 0.0
-    # доля прежде срезанных запросов, возвращающихся при новом кэпе:
-    # при неизменном кэпе drop_new == drop_old -> recovery 0 (калибровка держится)
+    # share of previously dropped requests that return under the new cap:
+    # with the cap unchanged drop_new == drop_old -> recovery 0 (calibration holds)
     recovery = 1.0 if drop_old <= 0 else min(1.0, max(0.0, 1 - drop_new / drop_old))
     rng = random.Random(f"{settings['campaign_id']}:{seed}")
 
@@ -97,21 +97,21 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
     first_price = settings["auction_model"] == "first_price"
 
     def eligible(row):
-        """Детерминированные фильтры (общие для обоих проходов)."""
+        """Deterministic filters (shared by both passes)."""
         return (row["seller"] not in blocked
                 and row["hour"] in hours
                 and row["geo"] in geo)
 
     def pay_of(row):
-        """Платёж при победе с новой ставкой (0 — не победа)."""
+        """Payment on a win at the new bid (0 — not a win)."""
         if bid < row["floor_price"] or bid <= row["winning_price"]:
             return 0.0
         return round(bid if first_price else max(row["floor_price"],
                                                  row["winning_price"]), 4)
 
-    # Проход 1: естественный расход каждого ДНЯ без лимита -> фактор прореживания.
-    # Уровень дня (не часа): на масштабе выборки в часе 0-3 потенциальных победы
-    # и мин-кламп по часу даёт систематический недолёт; в дне выборка плотнее.
+    # Pass 1: unconstrained natural spend per DAY -> thinning factor.
+    # Day level (not hour): at sample scale an hour holds 0-3 potential wins,
+    # and an hour-level min-clamp systematically underspends; days are denser.
     natural: dict[str, float] = {}
     for row in samples:
         if not eligible(row):
@@ -125,15 +125,15 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
         natural[row["day"]] = natural.get(row["day"], 0.0) + pay * w
     day_allow = (s_hour_allow * len(hours)
                  if s_hour_allow is not None else None)
-    # глобальный систематический фактор (Брезенхем): держится ровно
-    # floor(N*f) побед, равномерно по позициям флайта — точный счёт без
-    # дисперсии и без floor-потерь по дням; E[расход] = план пейсинга
+    # global systematic factor (Bresenham): keeps exactly floor(N*f) wins,
+    # evenly spread across flight positions — exact count with zero variance
+    # and no per-day floor losses; E[spend] = the pacing plan
     total_natural = sum(natural.values())
     thin_f = (min(1.0, (day_allow * len(natural)) / total_natural)
               if day_allow is not None and total_natural > 0 else 1.0)
 
-    # Проход 2: реплей. Победы прореживаются систематически (глобальный счётчик):
-    # floor((i+1)*f) > floor(i*f) — равномерно по ходу флайта, rng не нужен
+    # Pass 2: replay. Wins are thinned systematically (a global counter):
+    # floor((i+1)*f) > floor(i*f) — evenly along the flight; no rng needed
     win_idx = 0
     wins = bids = 0
     spend = 0.0
@@ -148,8 +148,8 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
             continue
         if row["outcome"] == "dropped_freq_cap" and rng.random() > recovery:
             continue
-        # dropped_targeting / dropped_schedule / no_bid_budget возвращаются
-        # в аукцион: их судьбу решают фильтры и гейты пейсинга
+        # dropped_targeting / dropped_schedule / no_bid_budget re-enter
+        # the auction: their fate is decided by the filters and pacing gates
         if budget_left <= 0:
             continue
         pay = pay_of(row)
@@ -157,7 +157,7 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
             i = win_idx
             win_idx += 1
             if math.floor((i + 1) * thin_f) <= math.floor(i * thin_f):
-                continue  # пейсинг: план часа/флайта исчерпан в ожидании
+                continue  # pacing: the hour/flight plan is exhausted in expectation
 
         bids += 1
         if pay <= 0:
@@ -165,7 +165,7 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
         if s_daily_cap is not None and day_spent.get(row["day"], 0.0) + pay > s_daily_cap:
             continue
         if pay > budget_left:
-            continue  # жёсткий глобальный кап: бюджет не пробивается
+            continue  # hard global cap: the budget is never exceeded
         wins += 1
         spend += pay
         day_spent[row["day"]] = day_spent.get(row["day"], 0.0) + pay
@@ -194,7 +194,7 @@ def _replay(settings, samples, scale, changes, budget_cap, seed):
 
 
 def run_simulation(inp: dict, data_root=None) -> dict:
-    """Точка входа контракта: input → output (см. /contracts/simulation.api.yaml)."""
+    """Contract entry point: input → output (see /contracts/simulation.api.yaml)."""
     data_root = Path(data_root) if data_root else DATA_ROOT
     settings, samples, hourly = _load(inp["campaign_id"], data_root)
     seed = int(inp.get("seed", 42))

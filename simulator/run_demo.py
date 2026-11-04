@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Демо-прогон: известный фикс для каждого failure mode — before/after/verified."""
+"""Demo run: a known fix for every failure mode — before/after/verified."""
 from __future__ import annotations
 
 import json

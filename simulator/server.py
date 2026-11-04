@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""HTTP-обёртка контракта /contracts/simulation.api.yaml (зона simulator, S-1 acting).
+"""HTTP wrapper for the /contracts/simulation.api.yaml contract (simulator zone, S-1 acting).
 
-POST /simulate  {"campaign_id", "seed", "changes", ...} -> output контракта
+POST /simulate  {"campaign_id", "seed", "changes", ...} -> contract output
 GET  /health    -> {"status": "ok", ...}
-Запуск: python3 simulator/server.py [--port 8100] [--data-root data/datasets]
-Только stdlib; детерминизм наследуется от simulate.run_simulation.
+Run: python3 simulator/server.py [--port 8100] [--data-root data/datasets]
+Stdlib only; determinism is inherited from simulate.run_simulation.
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def make_handler(data_root: Path):
                 return
             if not isinstance(inp, dict) or not inp.get("campaign_id"):
                 self._send(400, {"error": "bad_request",
-                                 "detail": "campaign_id обязателен"})
+                                 "detail": "campaign_id is required"})
                 return
             try:
                 out = run_simulation(inp, data_root=data_root)
@@ -63,7 +63,7 @@ def make_handler(data_root: Path):
                 return
             self._send(200, out)
 
-        def log_message(self, fmt, *args):  # тише в консоль
+        def log_message(self, fmt, *args):  # keep console output quiet
             pass
 
     return Handler
@@ -72,7 +72,7 @@ def make_handler(data_root: Path):
 def serve(port: int, data_root: Path) -> None:
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(data_root))
     print(f"simulator: listening on 127.0.0.1:{port} "
-          f"(data={data_root}, контракт simulation.api.yaml v1)")
+          f"(data={data_root}, contract simulation.api.yaml v1)")
     httpd.serve_forever()
 
 
