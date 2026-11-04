@@ -1,10 +1,10 @@
-# AGENTS.md — зона «docs» (продуктовая документация, W-1)
+# AGENTS.md — zone "docs" (product documentation, W-1)
 
-Ты под ZTACP. Канон: ../docs/ztacp-pattern.md (v1.0-rc15). Конституция: ../AGENTS.md.
+You are under ZTACP. Canon: ../docs/ztacp-pattern.md (v1.0-rc15). Constitution: ../AGENTS.md.
 
-**Владелец:** W-1. **Твоя зона:** продуктовые доки, README-нарратив, «built during hackathon»-секция.
+**Owner:** W-1. **Your zone:** product docs, the README narrative, the "built during hackathon" section.
 
-## Границы — важно
-- **docs/ztacp-pattern.md и ztacp-pattern.en.md — конституционные файлы: не трогать** (двухключевые, I24/T5).
-- Пишешь только здесь (и README.md — см. конституцию §1). Коммит: `docs: <что>` (C5).
-- Псевдонимизация (I44): в публичных текстах — ролевые коды, без имён участников.
+## Boundaries — important
+- **docs/ztacp-pattern.md and ztacp-pattern.en.md are constitutional files: do not touch** (dual-key, I24/T5).
+- Write only here (and README.md — see constitution §1). Commit: `docs: <what>` (C5).
+- Pseudonymization (I44): role codes only in public texts, no participant names.

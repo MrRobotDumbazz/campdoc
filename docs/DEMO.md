@@ -1,62 +1,62 @@
-# DEMO — как показывать Campaign Doctor (инструкция для демо/видео)
+# DEMO — how to present Campaign Doctor (demo/video guide)
 
-Все режимы полностью офлайн: **ни один ключ не нужен**. Ключи (Meta API / Baseten / HF)
-только включают живой LLM-режим — демо от них не зависит.
+Every mode is fully offline: **no keys required**. Keys (Meta API / Baseten / HF) only
+switch the live LLM mode — the demo does not depend on them.
 
-## Запуск (рекомендуемый стек: реальный симулятор)
+## Startup (recommended stack: the real simulator)
 
-Три терминала, из корня репо:
+Three terminals, from the repo root:
 
 ```bash
-# T1 — симулятор (реальный, детерминированный, офлайн)
+# T1 — simulator (real, deterministic, offline)
 python3 simulator/server.py --port 8100
 
-# T2 — бэкенд (реальные датасеты из /data, агент heuristic-режим)
+# T2 — backend (real datasets from /data, heuristic agent mode)
 SIMULATOR_BASE_URL=http://127.0.0.1:8100 backend/.venv/bin/uvicorn backend.api.main:app --port 8000
 
-# T3 — фронтенд
+# T3 — frontend
 cd ui && npm run dev
 ```
 
-UI: http://localhost:5173 (или порт из вывода vite). Swagger: http://localhost:8000/docs.
+UI: http://localhost:5173 (or the port vite reports). Swagger: http://localhost:8000/docs.
 
-Проверка готовности — http://localhost:8000/api/health должно показать:
+Readiness check — http://localhost:8000/api/health must show:
 `agent_mode: "heuristic"`, `data_source: "data-dir"`, `simulator: "http://127.0.0.1:8100"`.
 
-## Упрощённый режим (один терминал)
+## Simplified mode (one terminal)
 
-Только T2, БЕЗ `SIMULATOR_BASE_URL` — симулятор заменяется детерминированным моком.
-Всё работает (диагнозы, evidence, before/after), **но фиксы fm4_daypart и fm5_asap
-не верифицируются** — ограничение мок-модели. Для записи видео используй полный стек.
+Only T2, WITHOUT `SIMULATOR_BASE_URL` — the simulator is replaced by a deterministic mock.
+Everything works (diagnoses, evidence, before/after), **but fm4_daypart and fm5_asap
+fixes are not verified** — a mock-model limitation. Use the full stack for the video.
 
-## Сценарий 3 минут (PRD §10)
+## The 3-minute script (PRD §10)
 
-| Время | Действие | Что говорить |
+| Time | Action | What to say |
 |---|---|---|
-| 0:00–0:20 | Экран датасетов → выбрать `fm1_bid_low` | «Кампания доставляет только 22% бюджета. Спросим агента почему» |
-| 0:20–1:20 | Ввести вопрос: *«Why is this campaign only delivering 22% of budget?»* — смотреть live-трейс | «Агент сам планирует проверку: агрегирует доставку, разбирает бид-сэмплы, сверяет с бенчмарком. Каждый шаг — вызов инструмента с данными, не догадка» |
-| 1:20–2:10 | Открыть findings: причина + evidence; нажать Simulate на фиксе | «Диагноз с доказательствами. Теперь фикс не просто совет: он переигрывается в аукцион-симуляторе — показы 2.3k→7.8k, verified. Если бы фикс не проходил порог +5% — остался бы unverified» |
-| 2:10–2:35 | Сменить датасет на `control_healthy`, спросить *«Is anything wrong?»* | «Анти-галлюцинационный тест: на здоровой кампании агент обязан сказать „проблем нет“ — и говорит. 0 false positives в evals» |
-| 2:35–3:00 | Открыть README (eval-таблица) | «Все таргеты перевыполнены: top-1 100%, fix success 100%, groundedness 100%. Жюри может перезапустить: `backend/evals/run_evals.py`» |
+| 0:00–0:20 | Dataset screen → pick `fm1_bid_low` | "This campaign delivers only 22% of its budget. Let's ask the agent why" |
+| 0:20–1:20 | Ask: *"Why is this campaign only delivering 22% of budget?"* — watch the live trace | "The agent plans the check itself: aggregates delivery, dissects bid samples, compares against the benchmark. Every step is a tool call with data, not a guess" |
+| 1:20–2:10 | Open findings: cause + evidence; press Simulate on the fix | "A diagnosis with proof. And the fix is not just advice: it is replayed in the auction simulator — impressions 2.3k→7.8k, verified. A fix that misses the +5% threshold stays unverified" |
+| 2:10–2:35 | Switch to `control_healthy`, ask *"Is anything wrong?"* | "The anti-hallucination test: on a healthy campaign the agent must say 'no problem' — and it does. 0 false positives in the evals" |
+| 2:35–3:00 | Open the README (eval table) | "Every target exceeded: top-1 100%, fix success 100%, groundedness 100%. Judges can re-run: `backend/evals/run_evals.py`" |
 
-## Хорошие вопросы для показа (запас)
+## Good backup demos
 
-- `fm5_asap` — «деньги сгорели за 2 дня» → фикс even pacing, в notes видно разлёт доставки 3→14 дней.
-- `fm7_supply` — «82% бюджета у одного продавца» → блокировка, концентрация падает 0.82→0.22.
-- Кнопка rerun с новым seed — детерминизм/воспроизводимость.
+- `fm5_asap` — "the budget burned in 2 days" → even-pacing fix; the notes show delivery spread 3→14 days.
+- `fm7_supply` — "82% of budget at a single seller" → block it; concentration drops 0.82→0.22.
+- The rerun button with a new seed — determinism/reproducibility.
 
-## Чек-лист перед записью
+## Pre-recording checklist
 
-- [ ] `GET /api/health` — зелёные статусы (выше)
-- [ ] Прогнать сценарий один раз целиком dry-run
-- [ ] Окно браузера ~1440×900, зум 110–125% (читаемость трейса)
-- [ ] Порядок окон: UI слева, трейс не обрезается
+- [ ] `GET /api/health` — green statuses (above)
+- [ ] One full dry run of the script
+- [ ] Browser window ~1440×900, zoom 110–125% (trace readability)
+- [ ] Window layout: UI on the left, the trace not clipped
 
 ## Troubleshooting
 
-| Симптом | Лечение |
+| Symptom | Fix |
 |---|---|
-| `ModuleNotFoundError: fastapi` | запускать через `backend/.venv/bin/uvicorn`, venv уже собран |
-| Порт 8000/8100 занят | `--port 8010` и поменять `SIMULATOR_BASE_URL` |
-| UI не видит бэкенд | перезапустить `npm run dev` после старта бэкенда (CORS уже открыт) |
-| В UI бейдж «mock» | это про симулятор: запусти T1 и `SIMULATOR_BASE_URL` (см. выше) |
+| `ModuleNotFoundError: fastapi` | run via `backend/.venv/bin/uvicorn`; the venv is already built |
+| Port 8000/8100 busy | `--port 8010` and update `SIMULATOR_BASE_URL` |
+| UI can't see the backend | restart `npm run dev` after the backend starts (CORS is already open) |
+| "mock" badge in the UI | that's the simulator: start T1 and set `SIMULATOR_BASE_URL` (see above) |
